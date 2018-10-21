@@ -1,4 +1,4 @@
-from dfqueue import *
+from dfqueue import QueuesHandler, assign_dataframe,QueueHandlerItem
 from pandas import DataFrame, Series
 
 
