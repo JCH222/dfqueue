@@ -1,3 +1,5 @@
+import logging
+
 from uuid import uuid4
 from collections import deque
 from enum import Enum
@@ -58,6 +60,20 @@ class QueuesHandler:
         self.__instance[queue_name] = items
 
 
+def _create_logging_message(message: str):
+    line_decorator = '| '
+    lines = message.split('\n')
+    edge_length = max([len(line) for line in lines]) + len(line_decorator)
+    edge = ''.join(['-' for _ in range(edge_length)])
+    decorated_message = '\n' + edge + '\n'
+
+    for line in lines:
+        decorated_line = line_decorator + line
+        decorated_message += decorated_line + ''.join([' ' for _ in range(edge_length - len(decorated_line))]) + '\n'
+    decorated_message += edge
+    return decorated_message
+
+
 def adding(queue_item_creation_function=None, queue_name=None):
     def decorator(decorated_function):
         def wrapper(*args, **kwargs):
@@ -75,6 +91,15 @@ def adding(queue_item_creation_function=None, queue_name=None):
             assert all([True if key in assigned_dataframe_columns else False for key in new_result[1]]), "Columns in the second element of the new queue's item must be in the assigned dataframe : {}".format(list(result[1].keys()))
 
             queue_data[QueueHandlerItem.QUEUE.value].append(new_result)
+            logging.debug(_create_logging_message("New item added in the queue '{}' : {}\n"
+                                                  "Size of the queue : {}\n"
+                                                  "Size of the assigned dataframe : {}\n"
+                                                  "Max size of the assigned dataframe : {}".format(real_queue_name,
+                                                                                                   new_result,
+                                                                                                   len(queue_data[QueueHandlerItem.QUEUE.value]),
+                                                                                                   len(queue_data[QueueHandlerItem.DATAFRAME.value]),
+                                                                                                   queue_data[QueueHandlerItem.MAX_SIZE.value])))
+
             return result
         return wrapper
     return decorator
@@ -98,6 +123,14 @@ def scheduling(queue_name=None):
                     queue_item_columns = Series(data=queue_item[1], name='Queue Item')
                     if all(queue_item_columns == dataframe_columns) is True:
                         dataframe.drop([queue_item[0]], inplace=True)
+                        logging.debug(_create_logging_message("Item removed from the queue '{}' : {}\n"""
+                                                              "Size of the queue : {}\n"
+                                                              "Size of the assigned dataframe : {}\n"
+                                                              "Max size of the assigned dataframe : {}".format(real_queue_name,
+                                                                                                               queue_item,
+                                                                                                               len(queue),
+                                                                                                               len(dataframe),
+                                                                                                               max_size)))
             return result
         return wrapper
     return decorator
