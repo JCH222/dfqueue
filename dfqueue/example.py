@@ -8,8 +8,8 @@ def create_queue_item(result: tuple):
     return result[0], {"B": result[1]["B"]}
 
 
-@adding(queue_item_creation_function=create_queue_item)
 @scheduling()
+@adding(queue_item_creation_function=create_queue_item)
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict):
     dataframe.loc[index] = Series(data=columns_dict)
     return index, columns_dict
