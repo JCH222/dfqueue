@@ -4,6 +4,7 @@ from uuid import uuid4
 from collections import deque
 from enum import Enum
 from pandas import DataFrame, Series
+from typing import Union, Callable, Tuple, Any, NoReturn, Dict
 
 
 class QueueHandlerItem(Enum):
@@ -24,10 +25,10 @@ class QueuesHandler:
             self.__assigned_dataframe_max_sizes = {self.__default_queue_name: 1000000}
 
         @property
-        def default_queue_name(self):
+        def default_queue_name(self) -> str:
             return self.__default_queue_name
 
-        def __getitem__(self, queue_name: str):
+        def __getitem__(self, queue_name: str) -> Dict[QueueHandlerItem, Any]:
             try:
                 return {QueueHandlerItem.QUEUE.value: self.__queues[queue_name],
                         QueueHandlerItem.DATAFRAME.value: self.__assigned_dataframes[queue_name],
@@ -35,7 +36,7 @@ class QueuesHandler:
             except KeyError:
                 raise KeyError("The queue '{}' doesn't exist".format(queue_name))
 
-        def __setitem__(self, queue_name: str, items: dict):
+        def __setitem__(self, queue_name: str, items: dict) -> NoReturn:
             assert len(items) == len(QueueHandlerItem)
             assert all([True if item.value in items else False for item in QueueHandlerItem])
             self.__queues[queue_name] = deque(items[QueueHandlerItem.QUEUE.value])
@@ -50,17 +51,17 @@ class QueuesHandler:
         if not QueuesHandler.__instance:
             QueuesHandler.__instance = QueuesHandler.__QueuesHandler()
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> Any:
         return getattr(self.__instance, item)
 
-    def __getitem__(self, queue_name: str):
+    def __getitem__(self, queue_name: str) -> Dict[QueueHandlerItem, Any]:
         return self.__instance[queue_name]
 
-    def __setitem__(self, queue_name: str, items: dict):
+    def __setitem__(self, queue_name: str, items: Dict[QueueHandlerItem, Any]) -> NoReturn:
         self.__instance[queue_name] = items
 
 
-def _create_logging_message(message: str):
+def _create_logging_message(message: str) -> str:
     line_decorator = '| '
     lines = message.split('\n')
     edge_length = max([len(line) for line in lines]) + len(line_decorator)
@@ -74,9 +75,9 @@ def _create_logging_message(message: str):
     return decorated_message
 
 
-def adding(queue_item_creation_function=None, queue_name=None):
-    def decorator(decorated_function):
-        def wrapper(*args, **kwargs):
+def adding(queue_item_creation_function: Callable[[Any], Tuple[str, Dict]] = None, queue_name: Union[str, None] = None) -> Callable:
+    def decorator(decorated_function: Callable) -> Callable:
+        def wrapper(*args, **kwargs) -> Any:
             handler = QueuesHandler()
             real_queue_name = handler.default_queue_name if queue_name is None else queue_name
             queue_data = handler[real_queue_name]
@@ -105,9 +106,9 @@ def adding(queue_item_creation_function=None, queue_name=None):
     return decorator
 
 
-def scheduling(queue_name=None):
-    def decorator(decorated_function):
-        def wrapper(*args, **kwargs):
+def scheduling(queue_name: Union[str, None] = None) -> Callable:
+    def decorator(decorated_function: Callable) -> Callable:
+        def wrapper(*args, **kwargs) -> Any:
             handler = QueuesHandler()
             real_queue_name = handler.default_queue_name if queue_name is None else queue_name
             queue_data = handler[real_queue_name]
@@ -137,7 +138,7 @@ def scheduling(queue_name=None):
     return decorator
 
 
-def assign_dataframe(dataframe: DataFrame, max_size: int, queue_name=None):
+def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, queue_name: Union[str, None] = None) -> NoReturn:
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue

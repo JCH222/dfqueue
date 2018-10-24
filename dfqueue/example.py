@@ -2,15 +2,16 @@ import logging
 
 from dfqueue import *
 from pandas import DataFrame, Series
+from typing import Tuple, Dict
 
 
-def create_queue_item(result: tuple):
+def create_queue_item(result: tuple) -> Tuple[str, Dict]:
     return result[0], {"B": result[1]["B"]}
 
 
 @scheduling()
 @adding(queue_item_creation_function=create_queue_item)
-def add_row(dataframe: DataFrame, index: str, columns_dict: dict):
+def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
     dataframe.loc[index] = Series(data=columns_dict)
     return index, columns_dict
 
