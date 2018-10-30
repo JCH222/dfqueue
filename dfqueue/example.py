@@ -30,7 +30,7 @@ logging.getLogger().setLevel("DEBUG")
 
 
 dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
-assign_dataframe(dataframe, 3)
+assign_dataframe(dataframe, 3, ['B'])
 
 add_row(dataframe, "1", {'A': 1.0, 'B': 2.0, 'C': 3.0, 'D': 4.0})
 add_row(dataframe, "2", {'A': 5.0, 'B': 6.0, 'C': 7.0, 'D': 8.0})

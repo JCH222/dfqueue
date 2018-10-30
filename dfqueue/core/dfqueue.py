@@ -4,7 +4,7 @@ from uuid import uuid4
 from collections import deque
 from enum import Enum
 from pandas import DataFrame, Series
-from typing import Union, Callable, Tuple, Any, NoReturn, Dict
+from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable
 
 
 class QueueHandlerItem(Enum):
@@ -37,12 +37,12 @@ class QueuesHandler:
                 raise KeyError("The queue '{}' doesn't exist".format(queue_name))
 
         def __setitem__(self, queue_name: str, items: dict) -> NoReturn:
-            assert len(items) == len(QueueHandlerItem)
-            assert all([True if item in items else False for item in QueueHandlerItem])
+            assert len(items) == len(QueueHandlerItem), "Queue handler item(s) is(are) missing in the dictionary"
+            assert all([item in items for item in QueueHandlerItem]), "Items in the dictionary are not queue handler item"
             self.__queues[queue_name] = deque(items[QueueHandlerItem.QUEUE])
-            assert isinstance(items[QueueHandlerItem.DATAFRAME], DataFrame) or items[QueueHandlerItem.DATAFRAME] is None
+            assert isinstance(items[QueueHandlerItem.DATAFRAME], DataFrame) or items[QueueHandlerItem.DATAFRAME] is None, "Dataframe is not a Dataframe object or None"
             self.__assigned_dataframes[queue_name] = items[QueueHandlerItem.DATAFRAME]
-            assert isinstance(items[QueueHandlerItem.MAX_SIZE], int)
+            assert isinstance(items[QueueHandlerItem.MAX_SIZE], int), "Max size is not an integer"
             self.__assigned_dataframe_max_sizes[queue_name] = items[QueueHandlerItem.MAX_SIZE]
 
     __instance = None
@@ -75,7 +75,7 @@ def __create_logging_message(message: str) -> str:
     return decorated_message
 
 
-def adding(queue_item_creation_function: Callable[[Any], Tuple[str, Dict]] = None, queue_name: Union[str, None] = None) -> Callable:
+def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = None, queue_name: Union[str, None] = None) -> Callable:
     def decorator(decorated_function: Callable) -> Callable:
         def wrapper(*args, **kwargs) -> Any:
             handler = QueuesHandler()
@@ -138,8 +138,17 @@ def scheduling(queue_name: Union[str, None] = None) -> Callable:
     return decorator
 
 
-def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, queue_name: Union[str, None] = None) -> NoReturn:
+def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_columns: Iterable[Any], queue_name: Union[str, None] = None) -> NoReturn:
+    assert all(selected_column in dataframe.columns for selected_column in selected_columns), "Selected columns don't exist in the dataframe"
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue
-    handler[real_queue_name] = {QueueHandlerItem.QUEUE: [], QueueHandlerItem.DATAFRAME: dataframe,  QueueHandlerItem.MAX_SIZE: max_size}
+    reseted_queue = dataframe.apply(lambda row: (row.name, {selected_column: row[selected_column] for selected_column in selected_columns}), axis=1)
+    handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue if len(reseted_queue) else [], QueueHandlerItem.DATAFRAME: dataframe,  QueueHandlerItem.MAX_SIZE: max_size}
+    logging.debug(__create_logging_message("New dataframe assigned to the queue '{}'\n"
+                                           "Size of the queue : {}\n"
+                                           "Size of the assigned dataframe : {}\n"
+                                           "Max size of the assigned dataframe : {}".format(real_queue_name,
+                                                                                            len(reseted_queue),
+                                                                                            len(dataframe),
+                                                                                            max_size)))
