@@ -1,5 +1,3 @@
-# coding: utf8
-
 from .core.dfqueue import QueuesHandler
 from .core.dfqueue import QueueHandlerItem
 
