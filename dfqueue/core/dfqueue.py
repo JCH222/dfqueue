@@ -5,17 +5,39 @@ from collections import deque
 from enum import Enum
 from pandas import DataFrame, Series
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable
+from functools import wraps
 
 
 class QueueHandlerItem(Enum):
+    """
+        Items contained in the QueuesHandler's instance.
+
+        QUEUE : queue
+        DATAFRAME : dataframe assigned to the queue
+        MAX_SIZE : assigned dataframe's max size
+    """
+
     QUEUE = 0
     DATAFRAME = 1
     MAX_SIZE = 2
 
 
 class QueuesHandler:
+    """
+        SINGLETON
+    """
+
     # Singleton
     class __QueuesHandler:
+        """
+            Dataframe's queues handler.
+
+            Queues define the deleting priority of rows in the assigned dataframes when the dataframe's max sizes are
+            reached.
+
+            Queues contain row's labels and columns's values (i.e Queue items) for the scheduling.
+        """
+        
         def __init__(self):
             # Define the default queue's name
             self.__default_queue_name = str(uuid4())
@@ -47,6 +69,8 @@ class QueuesHandler:
 
     __instance = None
 
+    __doc__ += __QueuesHandler.__doc__
+
     def __init__(self):
         if not QueuesHandler.__instance:
             QueuesHandler.__instance = QueuesHandler.__QueuesHandler()
@@ -62,6 +86,16 @@ class QueuesHandler:
 
 
 def __create_logging_message(message: str) -> str:
+    """
+        Generate a logging message with a predefined format.
+
+        :param message: raw logging message
+        :type message: str
+
+        :return: formatted message
+        :rtype: str
+    """
+
     line_decorator = '| '
     lines = message.split('\n')
     edge_length = max([len(line) for line in lines]) + len(line_decorator)
@@ -76,7 +110,29 @@ def __create_logging_message(message: str) -> str:
 
 
 def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = None, queue_name: Union[str, None] = None) -> Callable:
+    """
+        Add a new item in a queue of the QueueHandler's instance.
+
+        Item added in the queue will be the result of the decorated function or the result of the queue item creation
+        function if it is not None.
+
+        The format of the queue's item has to be Tuple[Any, Dict]:
+        - The first element is the selected index's label in the assigned dataframe
+        - The second element is a dictionary with the selected columns (and the values) for the scheduling of the
+        assigned dataframe
+
+        :param queue_item_creation_function: queue item creation function from the result of the decorated function
+        :type queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]]
+
+        :param queue_name: name of the selected queue
+        :type queue_name: Union[str, None]
+
+        :return: Decorated function
+        :rtype: Callable
+    """
+
     def decorator(decorated_function: Callable) -> Callable:
+        @wraps(decorated_function)
         def wrapper(*args, **kwargs) -> Any:
             handler = QueuesHandler()
             real_queue_name = handler.default_queue_name if queue_name is None else queue_name
@@ -107,7 +163,20 @@ def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = Non
 
 
 def scheduling(queue_name: Union[str, None] = None) -> Callable:
+    """
+        Remove rows in the dataframe's queue when the dataframe's max size is reached.
+
+        If a row's label is present in the queue but the column's values don't match, the queue's item will be ignored.
+
+        :param queue_name: Name of the queue for the scheduling
+        :type queue_name: Union[str, None]
+
+        :return: Decorated function
+        :rtype: Callable
+    """
+
     def decorator(decorated_function: Callable) -> Callable:
+        @wraps(decorated_function)
         def wrapper(*args, **kwargs) -> Any:
             handler = QueuesHandler()
             real_queue_name = handler.default_queue_name if queue_name is None else queue_name
@@ -139,6 +208,25 @@ def scheduling(queue_name: Union[str, None] = None) -> Callable:
 
 
 def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_columns: Iterable[Any], queue_name: Union[str, None] = None) -> NoReturn:
+    """
+        Assign a dataframe to a QueueHandler's queue and reset the queue.
+
+        Items in the assigned dataframe will be added in the reseted queue according to the columns's names in the
+        'selected_columns' parameter.
+
+        :param dataframe: New assigned dataframe
+        :type dataframe: Union[DataFrame, None]
+
+        :param max_size: Max size of the assigned dataframe for the scheduling
+        :type max_size: int
+
+        :param selected_columns: Names of the dataframe's columns used for the initial queue's items creation
+        :type selected_columns: Iterable[Any]
+
+        :param queue_name: Name of the selected queue
+        :type queue_name: Union[str, None]
+    """
+
     assert all(selected_column in dataframe.columns for selected_column in selected_columns), "Selected columns don't exist in the dataframe"
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
