@@ -227,16 +227,16 @@ def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_
         :type queue_name: Union[str, None]
     """
 
-    assert all(selected_column in dataframe.columns for selected_column in selected_columns), "Selected columns don't exist in the dataframe"
+    assert all([selected_column in dataframe.columns for selected_column in selected_columns] if dataframe is not None else [True]), "Selected columns don't exist in the dataframe"
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue
-    reseted_queue = dataframe.apply(lambda row: (row.name, {selected_column: row[selected_column] for selected_column in selected_columns}), axis=1)
+    reseted_queue = dataframe.apply(lambda row: (row.name, {selected_column: row[selected_column] for selected_column in selected_columns}), axis=1) if dataframe is not None else []
     handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue if len(reseted_queue) else [], QueueHandlerItem.DATAFRAME: dataframe,  QueueHandlerItem.MAX_SIZE: max_size}
     logging.debug(__create_logging_message("New dataframe assigned to the queue '{}'\n"
                                            "Size of the queue : {}\n"
                                            "Size of the assigned dataframe : {}\n"
                                            "Max size of the assigned dataframe : {}".format(real_queue_name,
                                                                                             len(reseted_queue),
-                                                                                            len(dataframe),
+                                                                                            len(dataframe) if dataframe is not None else None,
                                                                                             max_size)))
