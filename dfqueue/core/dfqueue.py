@@ -109,7 +109,7 @@ def __create_logging_message(message: str) -> str:
     return decorated_message
 
 
-def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = None, queue_name: Union[str, None] = None) -> Callable:
+def adding(queue_item_creation_function: Callable[..., Tuple[Any, Dict]] = None, queue_name: Union[str, None] = None, other_args: Union[None, Dict[str, Any]] = None) -> Callable:
     """
         Add a new item in a queue of the QueueHandler's instance.
 
@@ -127,6 +127,9 @@ def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = Non
         :param queue_name: name of the selected queue
         :type queue_name: Union[str, None]
 
+        :param other_args: additional args for the queue item creation function
+        :type other_args: Union[None, Dict[str, Any]]
+
         :return: Decorated function
         :rtype: Callable
     """
@@ -139,7 +142,7 @@ def adding(queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]] = Non
             queue_data = handler[real_queue_name]
             assert isinstance(queue_data[QueueHandlerItem.DATAFRAME], DataFrame), "The dataframe of the queue '{}' is not assigned".format(real_queue_name)
             result = decorated_function(*args, **kwargs)
-            new_result = result if queue_item_creation_function is None else queue_item_creation_function(result)
+            new_result = result if queue_item_creation_function is None else queue_item_creation_function(result) if other_args is None else queue_item_creation_function(result, **other_args)
 
             # Check result's format
             assert isinstance(new_result, (list, tuple)) and len(new_result) == 2, "The new queue's item must be a list or a tuple with length of 2"
