@@ -1,7 +1,7 @@
 import logging
 import pytest
 
-from . import add_row, change_row_value, create_queue_item
+from . import add_row, change_row_value, create_queue_item, remove_row
 
 from dfqueue import QueuesHandler
 from collections import deque
@@ -15,7 +15,8 @@ logging.getLogger().setLevel("DEBUG")
 
 @pytest.mark.parametrize("queue_name", [
     None,
-    "TEST_1"
+    "TEST_1",
+    "TEST_2"
 ])
 def test_sequential_1(queue_name):
     selected_columns = ["B", "D"]
@@ -51,3 +52,26 @@ def test_sequential_1(queue_name):
     assert len(dataframe) == 2
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2", {'B': 6.0, 'D': 8.0}),
                                                                         ("3", {'B': 10.0, 'D': 12.0})])
+
+    remove_row(dataframe, "3")
+    assert len(dataframe) == 1
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2", {'B': 6.0, 'D': 8.0}),
+                                                                        ("3", {'B': 10.0, 'D': 12.0})])
+
+    remove_row(dataframe, "2")
+    assert len(dataframe) == 0
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2", {'B': 6.0, 'D': 8.0}),
+                                                                        ("3", {'B': 10.0, 'D': 12.0})])
+
+    sequential_add_row(dataframe, "4", {'A': 13.0, 'B': 14.0, 'C': 15.0, 'D': 16.0})
+    sequential_add_row(dataframe, "5", {'A': 17.0, 'B': 18.0, 'C': 19.0, 'D': 20.0})
+    assert len(dataframe) == 2
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2", {'B': 6.0, 'D': 8.0}),
+                                                                        ("3", {'B': 10.0, 'D': 12.0}),
+                                                                        ("4", {'B': 14.0, 'D': 16.0}),
+                                                                        ("5", {'B': 18.0, 'D': 20.0})])
+
+    sequential_add_row(dataframe, "6", {'A': 21.0, 'B': 22.0, 'C': 23.0, 'D': 24.0})
+    assert len(dataframe) == 2
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("5", {'B': 18.0, 'D': 20.0}),
+                                                                        ("6", {'B': 22.0, 'D': 24.0})])
