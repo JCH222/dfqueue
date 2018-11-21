@@ -10,6 +10,7 @@ from typing import Tuple, Dict
 from dfqueue import adding, scheduling, synchronized, assign_dataframe
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
+from random import randint
 
 logging.getLogger().setLevel("DEBUG")
 
@@ -41,14 +42,22 @@ def test_parallel_1(queue_name):
             parallel_add_row(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()),
                                                        'D': str(uuid4())})
 
+    def thread_change(operation_number: int, dataframe: DataFrame):
+        for _ in range(operation_number):
+            parallel_change_row_value(dataframe, dataframe.index.values[randint(0, len(dataframe)-1)],
+                                      {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()), 'D': str(uuid4())})
+
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 1000, selected_columns, queue_name)
 
+    assert len(dataframe) == 0
+
     with ThreadPoolExecutor(max_workers=2) as executor:
-        future_a = executor.submit(thread_adding, 5000, dataframe)
-        future_b = executor.submit(thread_adding, 5000, dataframe)
+        future_a = executor.submit(thread_adding, 4000, dataframe)
+        future_b = executor.submit(thread_adding, 4000, dataframe)
+        future_c = executor.submit(thread_change, 1000, dataframe)
         future_a.result()
         future_b.result()
+        future_c.result()
 
-    len(dataframe) == 1000
-    len(QueuesHandler()._QueuesHandler__queues[queue_name]) == 1000
+    assert len(dataframe) == 1000
