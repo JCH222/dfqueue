@@ -58,8 +58,18 @@ class QueuesHandler:
             except KeyError:
                 raise KeyError("The queue '{}' doesn't exist".format(queue_name))
 
-        def assign_lock(self, queue_name: str) -> NoReturn:
-            if queue_name not in self.__assigned_locks:
+        def assign_lock(self, queue_name: str, assigned_dataframe: DataFrame) -> NoReturn:
+            queue_names = [selected_queue_name for (selected_queue_name, selected_dataframe) in self.__assigned_dataframes.items() if id(selected_dataframe) == id(assigned_dataframe)]
+            is_lock_found = False
+            if len(queue_names) > 0:
+                for selected_queue_name, selected_lock in self.__assigned_locks.items():
+                    if selected_queue_name in queue_names:
+                        self.__assigned_locks[queue_name] = self.__assigned_locks[selected_queue_name]
+                        is_lock_found = True
+                        break
+                if is_lock_found is False:
+                    self.__assigned_locks[queue_name] = Lock()
+            else:
                 self.__assigned_locks[queue_name] = Lock()
 
         def __getitem__(self, queue_name: str) -> Dict[QueueHandlerItem, Any]:
@@ -222,7 +232,20 @@ def scheduling(queue_name: Union[str, None] = None) -> Callable:
     return decorator
 
 
-def synchronized(queue_name: Union[str, None] = None):
+def synchronized(queue_name: Union[str, None] = None) -> Callable:
+    """
+        Acquire the queue's Lock object before the decorated function calling. The Lock object will be released at the
+        end of the decorated function calling.
+
+        The same Lock object will be shared if several queues have the same assigned datframe.
+
+        :param queue_name: Name of the queue for the synchronization
+        :type queue_name: Union[str, None]
+
+        :return: Decorated function
+        :rtype: Callable
+    """
+
     def decorator(decorated_function: Callable) -> Callable:
         @wraps(decorated_function)
         def wrapper(*args, **kwargs) -> Any:
@@ -265,7 +288,7 @@ def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_
     reseted_queue = dataframe.apply(lambda row: (row.name, {selected_column: row[selected_column] for selected_column in selected_columns}), axis=1) if dataframe is not None else []
     handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue if len(reseted_queue) else [], QueueHandlerItem.DATAFRAME: dataframe,  QueueHandlerItem.MAX_SIZE: max_size}
     # noinspection PyProtectedMember
-    QueuesHandler._QueuesHandler__instance.assign_lock(queue_name)
+    QueuesHandler._QueuesHandler__instance.assign_lock(queue_name, dataframe)
     logging.debug(__create_logging_message("New dataframe assigned to the queue '{}'\n"
                                            "Size of the queue : {}\n"
                                            "Size of the assigned dataframe : {}\n"
