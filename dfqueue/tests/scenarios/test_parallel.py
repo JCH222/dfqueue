@@ -6,7 +6,7 @@ from . import add_row, change_row_value, create_queue_item
 from dfqueue import QueuesHandler
 from pandas import DataFrame
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Callable
 from dfqueue import adding, scheduling, synchronized, assign_dataframe
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
@@ -61,3 +61,49 @@ def test_parallel_1(queue_name):
         future_c.result()
 
     assert len(dataframe) == 1000
+
+
+# Two queues share the same dataframe
+def test_parallel_2():
+    selected_columns_a = ["A", "B"]
+    selected_columns_b = ["C", "D"]
+
+    @synchronized(queue_name='TEST_3')
+    @scheduling(queue_name='TEST_3')
+    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_a},
+            queue_name='TEST_3')
+    def parallel_add_row_a(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
+        return add_row(dataframe, index, columns_dict)
+
+    @synchronized(queue_name='TEST_4')
+    @scheduling(queue_name='TEST_4')
+    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_b},
+            queue_name='TEST_4')
+    def parallel_add_row_b(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
+        return add_row(dataframe, index, columns_dict)
+
+    def thread_adding(operation_number: int, dataframe: DataFrame, adding_function: Callable):
+        for _ in range(operation_number):
+            adding_function(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()),
+                                                      'D': str(uuid4())})
+
+    dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
+    assign_dataframe(dataframe, 1000, selected_columns_a, 'TEST_3')
+    assign_dataframe(dataframe, 500, selected_columns_b, 'TEST_4')
+
+    assert len(dataframe) == 0
+
+    # noinspection PyProtectedMember
+    queue_handler_instance = QueuesHandler._QueuesHandler__instance
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) != id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_4')) != id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) == id(queue_handler_instance.get_assigned_lock('TEST_4'))
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_a = executor.submit(thread_adding, 4000, dataframe, parallel_add_row_a)
+        future_b = executor.submit(thread_adding, 4000, dataframe, parallel_add_row_b)
+        future_a.result()
+        future_b.result()
+
+    # We can't predict if dataframe's size will be 500 or 1000
+    assert len(dataframe) in [500, 1000]
