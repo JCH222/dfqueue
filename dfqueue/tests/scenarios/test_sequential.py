@@ -23,12 +23,12 @@ def test_sequential_1(queue_name):
     queue_name = queue_name if queue_name is not None else QueuesHandler().default_queue_name
 
     @scheduling(queue_name=queue_name)
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def sequential_add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def sequential_change_row_value(dataframe: DataFrame, index: str, new_columns_dict: dict) -> Tuple[str, Dict]:
         return change_row_value(dataframe, index, new_columns_dict)

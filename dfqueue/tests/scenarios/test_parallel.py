@@ -26,13 +26,13 @@ def test_parallel_1(queue_name):
 
     @synchronized(queue_name=queue_name)
     @scheduling(queue_name=queue_name)
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def parallel_add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     @synchronized(queue_name=queue_name)
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def parallel_change_row_value(dataframe: DataFrame, index: str, new_columns_dict: dict) -> Tuple[str, Dict]:
         return change_row_value(dataframe, index, new_columns_dict)
@@ -70,14 +70,14 @@ def test_parallel_2():
 
     @synchronized(queue_name='TEST_3')
     @scheduling(queue_name='TEST_3')
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_a},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_a},
             queue_name='TEST_3')
     def parallel_add_row_a(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     @synchronized(queue_name='TEST_4')
     @scheduling(queue_name='TEST_4')
-    @adding(queue_item_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_b},
+    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_b},
             queue_name='TEST_4')
     def parallel_add_row_b(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)

@@ -3,7 +3,7 @@ from typing import Tuple, Dict, NoReturn, List, Any
 
 
 def create_queue_item(result: tuple, selected_columns: List[Any]) -> Tuple[str, Dict]:
-    return result[0], {column: result[1][column] for column in selected_columns}
+    return [(result[0], {column: result[1][column] for column in selected_columns})]
 
 
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:

@@ -10,13 +10,13 @@ def create_queue_item(result: tuple) -> Tuple[str, Dict]:
 
 
 @scheduling()
-@adding(queue_item_creation_function=create_queue_item)
+@adding(queue_items_creation_function=create_queue_item)
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
     dataframe.at[index] = Series(data=columns_dict)
     return index, columns_dict
 
 
-@adding(queue_item_creation_function=create_queue_item)
+@adding(queue_items_creation_function=create_queue_item)
 def change_row_value(dataframe: DataFrame, index: str, new_columns_dict: dict) -> Tuple[str, Dict]:
     dataframe.at[index] = Series(data=new_columns_dict)
     return index, new_columns_dict
