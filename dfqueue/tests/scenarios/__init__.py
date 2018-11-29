@@ -6,6 +6,10 @@ def create_queue_item(result: tuple, selected_columns: List[Any]) -> Tuple[str, 
     return [(result[0], {column: result[1][column] for column in selected_columns})]
 
 
+def create_queue_items(results: List[tuple], selected_columns: List[Any]) -> List[Tuple[str, Dict]]:
+    return [(result[0], {column: result[1][column] for column in selected_columns}) for result in results]
+
+
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
     dataframe.at[index] = Series(data=columns_dict)
     return index, columns_dict
