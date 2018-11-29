@@ -4,7 +4,7 @@ from uuid import uuid4
 from collections import deque
 from enum import Enum
 from pandas import DataFrame, Series
-from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable
+from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
 
@@ -131,11 +131,11 @@ def __create_logging_message(message: str) -> str:
     return decorated_message
 
 
-def adding(queue_item_creation_function: Callable[..., Tuple[Any, Dict]] = None, queue_name: Union[str, None] = None, other_args: Union[None, Dict[str, Any]] = None) -> Callable:
+def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] = None, queue_name: Union[str, None] = None, other_args: Union[None, Dict[str, Any]] = None) -> Callable:
     """
-        Add a new item in a queue of the QueueHandler's instance.
+        Add new items in a queue of the QueueHandler's instance.
 
-        Item added in the queue will be the result of the decorated function or the result of the queue item creation
+        Items added in the queue will be the result of the decorated function or the result of the queue item creation
         function if it is not None.
 
         The format of the queue's item has to be Tuple[Any, Dict]:
@@ -143,8 +143,8 @@ def adding(queue_item_creation_function: Callable[..., Tuple[Any, Dict]] = None,
         - The second element is a dictionary with the selected columns (and the values) for the scheduling of the
         assigned dataframe
 
-        :param queue_item_creation_function: queue item creation function from the result of the decorated function
-        :type queue_item_creation_function: Callable[[Any], Tuple[Any, Dict]]
+        :param queue_items_creation_function: queue items creation function used with the result of the decorated function
+        :type queue_items_creation_function: Callable[[Any], List[Tuple[Any, Dict]]]
 
         :param queue_name: name of the selected queue
         :type queue_name: Union[str, None]
@@ -164,23 +164,26 @@ def adding(queue_item_creation_function: Callable[..., Tuple[Any, Dict]] = None,
             queue_data = handler[real_queue_name]
             assert isinstance(queue_data[QueueHandlerItem.DATAFRAME], DataFrame), "The dataframe of the queue '{}' is not assigned".format(real_queue_name)
             result = decorated_function(*args, **kwargs)
-            new_result = result if queue_item_creation_function is None else queue_item_creation_function(result) if other_args is None else queue_item_creation_function(result, **other_args)
+            new_result = result if queue_items_creation_function is None else queue_items_creation_function(result) if other_args is None else queue_items_creation_function(result, **other_args)
 
             # Check result's format
-            assert isinstance(new_result, (list, tuple)) and len(new_result) == 2, "The new queue's item must be a list or a tuple with length of 2"
-            assert isinstance(new_result[1], dict), "The second element of the new queue's item must be a dictionary"
             assigned_dataframe_columns = list(queue_data[QueueHandlerItem.DATAFRAME])
-            assert all([True if key in assigned_dataframe_columns else False for key in new_result[1]]), "Columns in the second element of the new queue's item must be in the assigned dataframe : {}".format(list(result[1].keys()))
+            assert isinstance(new_result, (list, tuple)), "Queue's items must be contained in a list or a tuple object"
+            for index, item in enumerate(new_result):
+                assert isinstance(item, (list, tuple)) and len(item) == 2, "Item {} : The new queue's item must be a list or a tuple with length of 2".format(index)
+                assert isinstance(item[1], dict), "Item {} : The second element of the new queue's item must be a dictionary".format(index)
+                assert all([True if key in assigned_dataframe_columns else False for key in item[1]]), "Item {} : Columns in the second element of the new queue's item must be in the assigned dataframe : {}".format(list(result[1].keys())).format(index)
 
-            queue_data[QueueHandlerItem.QUEUE].append(new_result)
-            logging.debug(__create_logging_message("New item added in the queue '{}' : {}\n"
-                                                   "Size of the queue : {}\n"
-                                                   "Size of the assigned dataframe : {}\n"
-                                                   "Max size of the assigned dataframe : {}".format(real_queue_name,
-                                                                                                    new_result,
-                                                                                                    len(queue_data[QueueHandlerItem.QUEUE]),
-                                                                                                    len(queue_data[QueueHandlerItem.DATAFRAME]),
-                                                                                                    queue_data[QueueHandlerItem.MAX_SIZE])))
+            for item in new_result:
+                queue_data[QueueHandlerItem.QUEUE].append(item)
+                logging.debug(__create_logging_message("New item added in the queue '{}' : {}\n"
+                                                       "Size of the queue : {}\n"
+                                                       "Size of the assigned dataframe : {}\n"
+                                                       "Max size of the assigned dataframe : {}".format(real_queue_name,
+                                                                                                        item,
+                                                                                                        len(queue_data[QueueHandlerItem.QUEUE]),
+                                                                                                        len(queue_data[QueueHandlerItem.DATAFRAME]),
+                                                                                                        queue_data[QueueHandlerItem.MAX_SIZE])))
 
             return result
         return wrapper
