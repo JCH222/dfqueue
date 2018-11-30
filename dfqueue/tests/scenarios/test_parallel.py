@@ -1,9 +1,15 @@
+# coding: utf8
+
 import logging
+
+# noinspection PyPackageRequirements
 import pytest
 
 from . import add_row, change_row_value, create_queue_item
 
-from dfqueue import QueuesHandler
+# noinspection PyProtectedMember
+from dfqueue.core.dfqueue import QueuesHandler
+
 from pandas import DataFrame
 
 from typing import Tuple, Dict, Callable

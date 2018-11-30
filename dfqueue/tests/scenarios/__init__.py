@@ -1,3 +1,5 @@
+# coding: utf8
+
 from pandas import DataFrame, Series
 from typing import Tuple, Dict, NoReturn, List, Any
 

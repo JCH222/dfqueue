@@ -1,6 +1,11 @@
+# coding: utf8
+
+# noinspection PyPackageRequirements
 import pytest
 
-from dfqueue import QueuesHandler, QueueHandlerItem
+# noinspection PyProtectedMember
+from dfqueue.core.dfqueue import QueuesHandler, QueueHandlerItem
+
 from collections import deque
 from pandas import DataFrame
 

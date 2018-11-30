@@ -1,3 +1,5 @@
+# coding: utf8
+
 import logging
 
 from uuid import uuid4
@@ -7,6 +9,9 @@ from pandas import DataFrame, Series
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
+
+
+__all__ = ['adding', 'scheduling', 'synchronized', 'assign_dataframe', ]
 
 
 class QueueHandlerItem(Enum):
