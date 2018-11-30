@@ -15,14 +15,14 @@ def create_queue_items(results: List[tuple]) -> List[Tuple[str, Dict]]:
     return [(result[0], {"B": result[1]["B"]}) for result in results]
 
 
-@scheduling()
+@managing()
 @adding(queue_items_creation_function=create_queue_item)
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
     dataframe.at[index] = Series(data=columns_dict)
     return index, columns_dict
 
 
-@scheduling()
+@managing()
 @adding(queue_items_creation_function=create_queue_items)
 def add_rows(dataframe: DataFrame, indexes: List[str], columns_dicts: List[dict]) -> List[Tuple[str, Dict]]:
     result = list()

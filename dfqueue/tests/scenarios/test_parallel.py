@@ -13,7 +13,7 @@ from dfqueue.core.dfqueue import QueuesHandler
 from pandas import DataFrame
 
 from typing import Tuple, Dict, Callable
-from dfqueue import adding, scheduling, synchronized, assign_dataframe
+from dfqueue import adding, managing, synchronized, assign_dataframe
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
 from random import randint
@@ -31,7 +31,7 @@ def test_parallel_1(queue_name):
     queue_name = queue_name if queue_name is not None else QueuesHandler().default_queue_name
 
     @synchronized(queue_name=queue_name)
-    @scheduling(queue_name=queue_name)
+    @managing(queue_name=queue_name)
     @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def parallel_add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
@@ -75,14 +75,14 @@ def test_parallel_2():
     selected_columns_b = ["C", "D"]
 
     @synchronized(queue_name='TEST_3')
-    @scheduling(queue_name='TEST_3')
+    @managing(queue_name='TEST_3')
     @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_a},
             queue_name='TEST_3')
     def parallel_add_row_a(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     @synchronized(queue_name='TEST_4')
-    @scheduling(queue_name='TEST_4')
+    @managing(queue_name='TEST_4')
     @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_b},
             queue_name='TEST_4')
     def parallel_add_row_b(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:

@@ -12,7 +12,7 @@ from collections import deque
 from pandas import DataFrame
 
 from typing import Tuple, Dict, List
-from dfqueue import adding, scheduling, assign_dataframe
+from dfqueue import adding, managing, assign_dataframe
 
 logging.getLogger().setLevel("DEBUG")
 
@@ -26,7 +26,7 @@ def test_sequential_1(queue_name):
     selected_columns = ["B", "D"]
     queue_name = queue_name if queue_name is not None else QueuesHandler().default_queue_name
 
-    @scheduling(queue_name=queue_name)
+    @managing(queue_name=queue_name)
     @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def sequential_add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
@@ -98,7 +98,7 @@ def test_sequential_1(queue_name):
 def test_sequential_2(queue_name):
     selected_columns_a = ["A", "B"]
 
-    @scheduling(queue_name=queue_name)
+    @managing(queue_name=queue_name)
     @adding(queue_items_creation_function=create_queue_items, other_args={"selected_columns": selected_columns_a}, queue_name=queue_name)
     def sequential_add_rows(dataframe: DataFrame, indexes: List[str], columns_dicts: List[dict]) -> List[Tuple[str, Dict]]:
         assert len(indexes) == len(columns_dicts)

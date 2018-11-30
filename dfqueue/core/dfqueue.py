@@ -11,7 +11,7 @@ from functools import wraps
 from threading import Lock
 
 
-__all__ = ['adding', 'scheduling', 'synchronized', 'assign_dataframe', ]
+__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', ]
 
 
 class QueueHandlerItem(Enum):
@@ -41,7 +41,7 @@ class QueuesHandler:
             Queues define the deleting priority of rows in the assigned dataframes when the dataframe's max sizes are
             reached.
 
-            Queues contain row's labels and columns's values (i.e Queue items) for the scheduling.
+            Queues contain row's labels and columns's values (i.e Queue items) for the managing.
         """
         
         def __init__(self):
@@ -145,7 +145,7 @@ def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] 
 
         The format of the queue's item has to be Tuple[Any, Dict]:
         - The first element is the selected index's label in the assigned dataframe
-        - The second element is a dictionary with the selected columns (and the values) for the scheduling of the
+        - The second element is a dictionary with the selected columns (and the values) for the managing of the
         assigned dataframe
 
         :param queue_items_creation_function: queue items creation function used with the result of the decorated function
@@ -195,13 +195,13 @@ def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] 
     return decorator
 
 
-def scheduling(queue_name: Union[str, None] = None) -> Callable:
+def managing(queue_name: Union[str, None] = None) -> Callable:
     """
         Remove rows in the dataframe's queue when the dataframe's max size is reached.
 
         If a row's label is present in the queue but the column's values don't match, the queue's item will be ignored.
 
-        :param queue_name: Name of the queue for the scheduling
+        :param queue_name: Name of the queue for the managing
         :type queue_name: Union[str, None]
 
         :return: Decorated function
@@ -279,7 +279,7 @@ def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_
         :param dataframe: New assigned dataframe
         :type dataframe: Union[DataFrame, None]
 
-        :param max_size: Max size of the assigned dataframe for the scheduling
+        :param max_size: Max size of the assigned dataframe for the managing
         :type max_size: int
 
         :param selected_columns: Names of the dataframe's columns used for the initial queue's items creation
