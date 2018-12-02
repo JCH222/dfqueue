@@ -133,7 +133,7 @@ Example !
 An game room has 6 clients but only 3 arcades and the manager wants to add a challenge for the players. He creates the following rules:
 - A player is replaced by another client every 10 min (i.e., a session)
 - The replaced player is one has not won additional levels between this session and the previous one (if none or several are selected, the first in the list  will be chosen)
-- If a player reaches the 5th level, he will be the replaced player (if several are selected, the first in the list  will be chosen)
+- If a player reaches the 5th level, he will be a replaced player
 
 Initialization:
 
@@ -143,7 +143,7 @@ Initialization:
     
     arcades_nb = 3
     max_level = 5
-    checking_columns = ['REMAINING_LEVEL']
+    checking_columns = ['REMAINING_LEVELS']
     arcade_room = DataFrame(columns=checking_columns)
     
     clients = [
@@ -169,21 +169,21 @@ Adding and managing function creation:
         if not arcade_room.empty:
             # Udapte the current players
             for label in arcade_room.index:
-                remaining_level = arcade_room.at[label, 'REMAINING_LEVEL']
+                remaining_levels = arcade_room.at[label, 'REMAINING_LEVELS']
                 # Select a random value between 0 and the previous remaining levels
-                new_remaining_level = randint(0, remaining_level)
-                if new_remaining_level != remaining_level:
-                    if new_remaining_level != 0:
+                new_remaining_levels = randint(0, remaining_levels)
+                if new_remaining_levels != remaining_levels:
+                    if new_remaining_levels != 0:
                         # Udapte the row in the dataframe
-                        arcade_room.at[label, 'REMAINING_LEVEL'] = new_remaining_level
+                        arcade_room.at[label, 'REMAINING_LEVELS'] = new_remaining_levels
                         # Add an item in the queue 
-                        current_players.append((label, {'REMAINING_LEVEL': new_remaining_level}))
+                        current_players.append((label, {'REMAINING_LEVELS': new_remaining_levels}))
                     else:
                         arcade_room.drop([label], inplace=True)
 
         # Add the new players in the queue and the dataframe
         for _ in range(new_players_nb):
-            new_player = (clients.pop(0), {'REMAINING_LEVEL': max_level})
+            new_player = (clients.pop(0), {'REMAINING_LEVELS': max_level})
             arcade_room.at[new_player[0]] = Series(data=new_player[1])
             current_players.append(new_player)
 
