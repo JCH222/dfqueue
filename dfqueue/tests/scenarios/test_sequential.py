@@ -1,6 +1,10 @@
 # coding: utf8
 
+import time
 import logging
+# noinspection PyPackageRequirements
+import numpy
+# noinspection PyPackageRequirements
 import pytest
 
 from . import add_row, change_row_value, create_queue_item, remove_row, create_queue_items
@@ -149,3 +153,25 @@ def test_sequential_2(queue_name):
         ("6", {'A': 21.0, 'B': 22.0}),
         ("7", {'A': 25.0, 'B': 26.0})
     ])
+
+
+@pytest.mark.parametrize("queue_name, rows_nb, columns, dataframe_max_size", [
+    ("TEST_4", 5000, ['A', 'B', 'C', 'D'], 5)
+])
+def test_massive_managing(queue_name, rows_nb, columns, dataframe_max_size):
+    @managing(queue_name=queue_name)
+    def manage():
+        pass
+
+    data = numpy.array(numpy.random.rand(rows_nb, len(columns)))
+    index = numpy.array(numpy.arange(rows_nb))
+    dataframe = DataFrame(data, index=index, columns=columns)
+
+    assert len(dataframe) == rows_nb
+    assign_dataframe(dataframe, dataframe_max_size, columns, queue_name)
+    start = time.time()
+    manage()
+    end = time.time()
+    assert len(dataframe) == dataframe_max_size
+
+    print("\n{} managing execution time : {} s".format(queue_name, end-start))
