@@ -43,7 +43,6 @@ class QueuesHandler:
 
             Queues contain row's labels and columns's values (i.e Queue items) for the managing.
         """
-        
         def __init__(self):
             # Define the default queue's name
             self.__default_queue_name = str(uuid4())
@@ -66,8 +65,8 @@ class QueuesHandler:
         def assign_lock(self, queue_name: str, assigned_dataframe: DataFrame) -> NoReturn:
             queue_names = [selected_queue_name for (selected_queue_name, selected_dataframe) in self.__assigned_dataframes.items() if id(selected_dataframe) == id(assigned_dataframe)]
             is_lock_found = False
-            if len(queue_names) > 0:
-                for selected_queue_name, selected_lock in self.__assigned_locks.items():
+            if queue_names:
+                for selected_queue_name in self.__assigned_locks:
                     if selected_queue_name in queue_names:
                         self.__assigned_locks[queue_name] = self.__assigned_locks[selected_queue_name]
                         is_lock_found = True
@@ -177,7 +176,8 @@ def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] 
             for index, item in enumerate(new_result):
                 assert isinstance(item, (list, tuple)) and len(item) == 2, "Item {} : The new queue's item must be a list or a tuple with length of 2".format(index)
                 assert isinstance(item[1], dict), "Item {} : The second element of the new queue's item must be a dictionary".format(index)
-                assert all([True if key in assigned_dataframe_columns else False for key in item[1]]), "Item {} : Columns in the second element of the new queue's item must be in the assigned dataframe : {}".format(list(result[1].keys())).format(index)
+                for key in item[1]:
+                    assert key in assigned_dataframe_columns, "Item {} : Column {} in the second element of the new queue's item is not in the assigned dataframe : {}".format(list(result[1].keys()), key, index)
 
             for item in new_result:
                 queue_data[QueueHandlerItem.QUEUE].append(item)
@@ -219,7 +219,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
             queue = queue_data[QueueHandlerItem.QUEUE]
             dataframe = queue_data[QueueHandlerItem.DATAFRAME]
             max_size = queue_data[QueueHandlerItem.MAX_SIZE]
-            while dataframe.index.size > max_size and len(queue) > 0:
+            while dataframe.index.size > max_size and queue:
                 queue_item = queue.popleft()
                 if queue_item[0] in dataframe.index:
                     dataframe_columns = dataframe.loc[queue_item[0], list(queue_item[1].keys())]
@@ -234,7 +234,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                                                                                                                 len(queue),
                                                                                                                 len(dataframe),
                                                                                                                 max_size)))
-                        
+
             return result
         return wrapper
     return decorator
@@ -294,7 +294,10 @@ def assign_dataframe(dataframe: Union[DataFrame, None], max_size: int, selected_
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue
     reseted_queue = dataframe.apply(lambda row: (row.name, {selected_column: row[selected_column] for selected_column in selected_columns}), axis=1) if dataframe is not None else []
-    handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue if len(reseted_queue) else [], QueueHandlerItem.DATAFRAME: dataframe,  QueueHandlerItem.MAX_SIZE: max_size}
+    if isinstance(reseted_queue, DataFrame):
+        assert reseted_queue.empty is True
+        reseted_queue = []
+    handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue, QueueHandlerItem.DATAFRAME: dataframe, QueueHandlerItem.MAX_SIZE: max_size}
     # noinspection PyProtectedMember
     QueuesHandler._QueuesHandler__instance.assign_lock(queue_name, dataframe)
     logging.debug(__create_logging_message("New dataframe assigned to the queue '{}'\n"

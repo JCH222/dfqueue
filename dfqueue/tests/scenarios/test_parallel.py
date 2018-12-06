@@ -56,7 +56,7 @@ def test_parallel_1(queue_name):
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 1000, selected_columns, queue_name)
 
-    assert len(dataframe) == 0
+    assert dataframe.empty
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_a = executor.submit(thread_adding, 4000, dataframe)
@@ -97,7 +97,7 @@ def test_parallel_2():
     assign_dataframe(dataframe, 1000, selected_columns_a, 'TEST_3')
     assign_dataframe(dataframe, 500, selected_columns_b, 'TEST_4')
 
-    assert len(dataframe) == 0
+    assert dataframe.empty
 
     # noinspection PyProtectedMember
     queue_handler_instance = QueuesHandler._QueuesHandler__instance

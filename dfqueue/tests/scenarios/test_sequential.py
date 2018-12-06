@@ -44,7 +44,7 @@ def test_sequential_1(queue_name):
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 2, selected_columns, queue_name)
 
-    assert len(dataframe) == 0
+    assert dataframe.empty
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque()
 
     sequential_add_row(dataframe, "1", {'A': 1.0, 'B': 2.0, 'C': 3.0, 'D': 4.0})
@@ -67,7 +67,7 @@ def test_sequential_1(queue_name):
                                                                         ("3", {'B': 10.0, 'D': 12.0})])
 
     remove_row(dataframe, "2")
-    assert len(dataframe) == 0
+    assert dataframe.empty
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2", {'B': 6.0, 'D': 8.0}),
                                                                         ("3", {'B': 10.0, 'D': 12.0})])
 
@@ -114,7 +114,7 @@ def test_sequential_2(queue_name):
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 5, selected_columns_a, queue_name)
 
-    assert len(dataframe) == 0
+    assert dataframe.empty
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque()
 
     sequential_add_rows(dataframe, ["1"], [{'A': 1.0, 'B': 2.0, 'C': 3.0, 'D': 4.0}])
