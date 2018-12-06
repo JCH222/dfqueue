@@ -32,26 +32,32 @@ def test_parallel_1(queue_name):
 
     @synchronized(queue_name=queue_name)
     @managing(queue_name=queue_name)
-    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item,
+            other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
     def parallel_add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     @synchronized(queue_name=queue_name)
-    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns},
+    @adding(queue_items_creation_function=create_queue_item,
+            other_args={"selected_columns": selected_columns},
             queue_name=queue_name)
-    def parallel_change_row_value(dataframe: DataFrame, index: str, new_columns_dict: dict) -> Tuple[str, Dict]:
+    def parallel_change_row_value(dataframe: DataFrame,
+                                  index: str,
+                                  new_columns_dict: dict) -> Tuple[str, Dict]:
         return change_row_value(dataframe, index, new_columns_dict)
 
     def thread_adding(operation_number: int, dataframe: DataFrame):
         for _ in range(operation_number):
-            parallel_add_row(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()),
-                                                       'D': str(uuid4())})
+            parallel_add_row(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()),
+                                                       'C': str(uuid4()), 'D': str(uuid4())})
 
     def thread_change(operation_number: int, dataframe: DataFrame):
         for _ in range(operation_number):
-            parallel_change_row_value(dataframe, dataframe.index.values[randint(0, len(dataframe)-1)],
-                                      {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()), 'D': str(uuid4())})
+            parallel_change_row_value(dataframe,
+                                      dataframe.index.values[randint(0, len(dataframe)-1)],
+                                      {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()),
+                                       'D': str(uuid4())})
 
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 1000, selected_columns, queue_name)
@@ -76,22 +82,28 @@ def test_parallel_2():
 
     @synchronized(queue_name='TEST_3')
     @managing(queue_name='TEST_3')
-    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_a},
+    @adding(queue_items_creation_function=create_queue_item,
+            other_args={"selected_columns": selected_columns_a},
             queue_name='TEST_3')
-    def parallel_add_row_a(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
+    def parallel_add_row_a(dataframe: DataFrame,
+                           index: str,
+                           columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     @synchronized(queue_name='TEST_4')
     @managing(queue_name='TEST_4')
-    @adding(queue_items_creation_function=create_queue_item, other_args={"selected_columns": selected_columns_b},
+    @adding(queue_items_creation_function=create_queue_item,
+            other_args={"selected_columns": selected_columns_b},
             queue_name='TEST_4')
-    def parallel_add_row_b(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:
+    def parallel_add_row_b(dataframe: DataFrame,
+                           index: str,
+                           columns_dict: dict) -> Tuple[str, Dict]:
         return add_row(dataframe, index, columns_dict)
 
     def thread_adding(operation_number: int, dataframe: DataFrame, adding_function: Callable):
         for _ in range(operation_number):
-            adding_function(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()), 'C': str(uuid4()),
-                                                      'D': str(uuid4())})
+            adding_function(dataframe, str(uuid4()), {'A': str(uuid4()), 'B': str(uuid4()),
+                                                      'C': str(uuid4()), 'D': str(uuid4())})
 
     dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
     assign_dataframe(dataframe, 1000, selected_columns_a, 'TEST_3')
@@ -101,9 +113,12 @@ def test_parallel_2():
 
     # noinspection PyProtectedMember
     queue_handler_instance = QueuesHandler._QueuesHandler__instance
-    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) != id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
-    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_4')) != id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
-    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) == id(queue_handler_instance.get_assigned_lock('TEST_4'))
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) != \
+           id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_4')) != \
+           id(queue_handler_instance.get_assigned_lock(QueuesHandler().default_queue_name))
+    assert id(QueuesHandler._QueuesHandler__instance.get_assigned_lock('TEST_3')) == \
+           id(queue_handler_instance.get_assigned_lock('TEST_4'))
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_a = executor.submit(thread_adding, 4000, dataframe, parallel_add_row_a)

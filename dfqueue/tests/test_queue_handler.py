@@ -67,13 +67,16 @@ def test_invalid_set_item():
     default_queue_name = handler.default_queue_name
 
     with pytest.raises(AssertionError):
-        handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(), QueueHandlerItem.DATAFRAME: DataFrame()}
+        handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(),
+                                       QueueHandlerItem.DATAFRAME: DataFrame()}
 
     with pytest.raises(AssertionError):
-        handler[default_queue_name] = {QueueHandlerItem.MAX_SIZE: 1, QueueHandlerItem.DATAFRAME: DataFrame()}
+        handler[default_queue_name] = {QueueHandlerItem.MAX_SIZE: 1,
+                                       QueueHandlerItem.DATAFRAME: DataFrame()}
 
     with pytest.raises(AssertionError):
-        handler[default_queue_name] = {QueueHandlerItem.MAX_SIZE: 1, QueueHandlerItem.QUEUE: deque()}
+        handler[default_queue_name] = {QueueHandlerItem.MAX_SIZE: 1,
+                                       QueueHandlerItem.QUEUE: deque()}
 
     with pytest.raises(AssertionError):
         handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(),
