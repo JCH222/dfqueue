@@ -1,22 +1,17 @@
 # coding: utf8
 
 import logging
-
-# noinspection PyPackageRequirements
-import pytest
-
-from . import add_row, change_row_value, create_queue_item
-
-# noinspection PyProtectedMember
-from dfqueue.core.dfqueue import QueuesHandler
-
-from pandas import DataFrame
-
 from typing import Tuple, Dict, Callable
-from dfqueue import adding, managing, synchronized, assign_dataframe
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
 from random import randint
+# noinspection PyPackageRequirements
+import pytest
+from pandas import DataFrame
+# noinspection PyProtectedMember
+from dfqueue.core.dfqueue import QueuesHandler
+from dfqueue import adding, managing, synchronized, assign_dataframe
+from . import add_row, change_row_value, create_queue_item
 
 logging.getLogger().setLevel("DEBUG")
 

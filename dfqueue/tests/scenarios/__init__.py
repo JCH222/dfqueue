@@ -1,7 +1,7 @@
 # coding: utf8
 
-from pandas import DataFrame, Series
 from typing import Tuple, Dict, NoReturn, List, Any
+from pandas import DataFrame, Series
 
 
 def create_queue_item(result: tuple, selected_columns: List[Any]) -> Tuple[str, Dict]:
@@ -9,7 +9,8 @@ def create_queue_item(result: tuple, selected_columns: List[Any]) -> Tuple[str, 
 
 
 def create_queue_items(results: List[tuple], selected_columns: List[Any]) -> List[Tuple[str, Dict]]:
-    return [(result[0], {column: result[1][column] for column in selected_columns}) for result in results]
+    return [(result[0],
+             {column: result[1][column] for column in selected_columns}) for result in results]
 
 
 def add_row(dataframe: DataFrame, index: str, columns_dict: dict) -> Tuple[str, Dict]:

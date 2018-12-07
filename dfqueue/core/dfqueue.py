@@ -5,10 +5,10 @@ import logging
 from uuid import uuid4
 from collections import deque
 from enum import Enum
-from pandas import DataFrame, Series
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
+from pandas import DataFrame, Series
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', ]

@@ -2,21 +2,17 @@
 
 import time
 import logging
+from collections import deque
+from typing import Tuple, Dict, List
 # noinspection PyPackageRequirements
 import numpy
 # noinspection PyPackageRequirements
 import pytest
-
-from . import add_row, change_row_value, create_queue_item, remove_row, create_queue_items
-
+from pandas import DataFrame
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler
-
-from collections import deque
-from pandas import DataFrame
-
-from typing import Tuple, Dict, List
 from dfqueue import adding, managing, assign_dataframe
+from . import add_row, change_row_value, create_queue_item, remove_row, create_queue_items
 
 logging.getLogger().setLevel("DEBUG")
 

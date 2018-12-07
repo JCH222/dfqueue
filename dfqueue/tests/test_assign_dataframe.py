@@ -1,18 +1,14 @@
 # coding: utf8
 
+from collections import deque
 # noinspection PyPackageRequirements
 import pytest
-
 # noinspection PyPackageRequirements
 from numpy import array
-
+from pandas import DataFrame
 from dfqueue import assign_dataframe
-
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler, QueueHandlerItem
-
-from pandas import DataFrame
-from collections import deque
 
 
 @pytest.mark.parametrize("queue_name", [

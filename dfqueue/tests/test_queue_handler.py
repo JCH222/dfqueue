@@ -1,13 +1,11 @@
 # coding: utf8
 
+from collections import deque
 # noinspection PyPackageRequirements
 import pytest
-
+from pandas import DataFrame
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler, QueueHandlerItem
-
-from collections import deque
-from pandas import DataFrame
 
 
 def test_singleton():
