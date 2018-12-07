@@ -6,9 +6,9 @@ from collections import deque
 from typing import Tuple, Dict, List
 # noinspection PyPackageRequirements
 import numpy
+from pandas import DataFrame
 # noinspection PyPackageRequirements
 import pytest
-from pandas import DataFrame
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler
 from dfqueue import adding, managing, assign_dataframe
