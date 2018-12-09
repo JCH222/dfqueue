@@ -6,7 +6,7 @@ from collections import deque
 from typing import Tuple, Dict, List
 # noinspection PyPackageRequirements
 import numpy
-from pandas import DataFrame
+from pandas import DataFrame, Series
 # noinspection PyPackageRequirements
 import pytest
 # noinspection PyProtectedMember
@@ -197,6 +197,41 @@ def test_massive_managing(queue_name, rows_nb, columns, dataframe_max_size):
     assign_dataframe(dataframe, dataframe_max_size, columns, queue_name)
     start = time.time()
     manage()
+    end = time.time()
+    assert len(dataframe) == dataframe_max_size
+
+    print("\n{} managing execution time : {} s".format(queue_name, end-start))
+
+
+@pytest.mark.parametrize("queue_name, execution_nb, columns, dataframe_max_size, chunk_size", [
+    ("TEST_4", 5000, ['A', 'B', 'C', 'D'], 5, 1),
+    ("TEST_5", 5000, ['A', 'B', 'C', 'D'], 5, 5),
+    ("TEST_6", 5000, ['A', 'B', 'C', 'D'], 5, 10),
+    ("TEST_7", 5000, ['A', 'B', 'C', 'D'], 5, 100),
+    ("TEST_8", 5000, ['A', 'B', 'C', 'D'], 5, 1000)
+])
+def test_massive_managing_2(queue_name, execution_nb, columns, dataframe_max_size, chunk_size):
+    dataframe = DataFrame(columns=columns)
+    assign_dataframe(dataframe, dataframe_max_size, columns, queue_name)
+
+    @managing(queue_name=queue_name)
+    @adding(queue_name=queue_name)
+    def add_rows(rows_nb):
+        result = list()
+        for _ in range(rows_nb):
+            index = numpy.random.rand(1)[0]
+            columns_dict = dict()
+            for column in columns:
+                columns_dict[column] = numpy.random.rand(1)[0]
+            dataframe.at[index] = Series(data=columns_dict)
+            result.append((index, columns_dict))
+        return result
+
+    assert dataframe.empty
+    start = time.time()
+    for i in range(int(execution_nb/chunk_size)):
+        add_rows(chunk_size)
+        assert len(dataframe) == chunk_size*(i+1) if chunk_size*(i+1) <= dataframe_max_size else dataframe_max_size
     end = time.time()
     assert len(dataframe) == dataframe_max_size
 
