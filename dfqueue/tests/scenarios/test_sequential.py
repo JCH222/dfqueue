@@ -231,7 +231,8 @@ def test_massive_managing_2(queue_name, execution_nb, columns, dataframe_max_siz
     start = time.time()
     for i in range(int(execution_nb/chunk_size)):
         add_rows(chunk_size)
-        assert len(dataframe) == chunk_size*(i+1) if chunk_size*(i+1) <= dataframe_max_size else dataframe_max_size
+        assert len(dataframe) == chunk_size*(i+1) if chunk_size*(i+1) <= dataframe_max_size \
+            else dataframe_max_size
     end = time.time()
     assert len(dataframe) == dataframe_max_size
 
