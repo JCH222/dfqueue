@@ -10,6 +10,8 @@ from functools import wraps
 from threading import Lock
 from pandas import DataFrame, Series
 
+from itertools import compress
+
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', ]
 
@@ -251,23 +253,48 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
             queue = queue_data[QueueHandlerItem.QUEUE]
             dataframe = queue_data[QueueHandlerItem.DATAFRAME]
             max_size = queue_data[QueueHandlerItem.MAX_SIZE]
-            while dataframe.index.size > max_size and queue:
-                queue_item = queue.popleft()
-                if queue_item[0] in dataframe.index:
-                    dataframe_columns = dataframe.loc[queue_item[0], list(queue_item[1].keys())]
-                    queue_item_columns = Series(data=queue_item[1], name='Queue Item')
-                    if all(queue_item_columns == dataframe_columns) is True:
-                        dataframe.drop([queue_item[0]], inplace=True)
-                        logging.debug(
-                            __create_logging_message("Item removed from the queue '{}' : {}\n"
-                                                     "Size of the queue : {}\n"
-                                                     "Size of the assigned dataframe : {}\n"
-                                                     "Max size of the assigned dataframe : {}".
-                                                     format(real_queue_name,
-                                                            queue_item,
-                                                            len(queue),
-                                                            len(dataframe),
-                                                            max_size)))
+
+            def get_items_nb() -> int:
+                queue_size = len(queue)
+                diff = dataframe.index.size - max_size
+                return queue_size if diff > queue_size else diff
+
+            items_nb = get_items_nb()
+            while items_nb > 0 and len(queue) > 0:
+                queue_items = dict([queue.popleft() for _ in range(items_nb)])
+                selected_labels = list(compress(dataframe.index,
+                                                dataframe.index.isin(queue_items.keys())))
+
+                selected_checking_values_list = list()
+                selected_columns = set()
+                for selected_label in selected_labels:
+                    selected_checking_values = queue_items[selected_label]
+                    selected_checking_values_list.append(selected_checking_values)
+                    selected_columns.update(selected_checking_values.keys())
+
+                original_dataframe = dataframe.loc[selected_labels, selected_columns]
+                queue_items_dataframe = DataFrame(data=selected_checking_values_list,
+                                                  index=selected_labels)
+                comparison_result = original_dataframe == queue_items_dataframe.reindex(
+                    columns=original_dataframe.columns)
+                new_selected_labels = list(filter(None,
+                                                  comparison_result.apply(lambda row:
+                                                                          row.name if all(row)
+                                                                          else None, axis=1)))
+                dataframe.drop(new_selected_labels, inplace=True)
+                logging.debug(
+                    __create_logging_message("Item removed from the queue '{}' : {}\n"
+                                             "Size of the queue : {}\n"
+                                             "Size of the assigned dataframe : {}\n"
+                                             "Max size of the assigned dataframe : {}".
+                                             format(real_queue_name,
+                                                    "\n".join(
+                                                        [str((label, values))
+                                                         for label, values in queue_items.items()]),
+                                                    len(queue),
+                                                    len(dataframe),
+                                                    max_size)))
+                items_nb = get_items_nb()
 
             return result
         return wrapper
