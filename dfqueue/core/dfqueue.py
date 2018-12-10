@@ -254,7 +254,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
             dataframe = queue_data[QueueHandlerItem.DATAFRAME]
             max_size = queue_data[QueueHandlerItem.MAX_SIZE]
 
-            def get_items_nb():
+            def get_items_nb() -> int:
                 queue_size = len(queue)
                 diff = dataframe.index.size - max_size
                 return queue_size if diff > queue_size else diff
@@ -262,7 +262,8 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
             items_nb = get_items_nb()
             while items_nb > 0 and len(queue) > 0:
                 queue_items = dict([queue.popleft() for _ in range(items_nb)])
-                selected_labels = list(compress(dataframe.index, dataframe.index.isin(queue_items.keys())))
+                selected_labels = list(compress(dataframe.index,
+                                                dataframe.index.isin(queue_items.keys())))
 
                 selected_checking_values_list = list()
                 selected_columns = set()
@@ -272,9 +273,14 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                     selected_columns.update(selected_checking_values.keys())
 
                 original_dataframe = dataframe.loc[selected_labels, selected_columns]
-                queue_items_dataframe = DataFrame(data=selected_checking_values_list, index=selected_labels)
-                comparison_result = original_dataframe == queue_items_dataframe.reindex(columns=original_dataframe.columns)
-                new_selected_labels = list(filter(None, comparison_result.apply(lambda row: row.name if all(row) else None, axis=1)))
+                queue_items_dataframe = DataFrame(data=selected_checking_values_list,
+                                                  index=selected_labels)
+                comparison_result = original_dataframe == queue_items_dataframe.reindex(
+                    columns=original_dataframe.columns)
+                new_selected_labels = list(filter(None,
+                                                  comparison_result.apply(lambda row:
+                                                                          row.name if all(row)
+                                                                          else None, axis=1)))
                 dataframe.drop(new_selected_labels, inplace=True)
                 logging.debug(
                     __create_logging_message("Item removed from the queue '{}' : {}\n"
