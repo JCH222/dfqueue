@@ -3,7 +3,7 @@
 import time
 import logging
 from collections import deque
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, NoReturn
 # noinspection PyPackageRequirements
 import numpy
 from pandas import DataFrame, Series
@@ -186,7 +186,7 @@ def test_sequential_2(queue_name):
 ])
 def test_massive_managing(queue_name, rows_nb, columns, dataframe_max_size):
     @managing(queue_name=queue_name)
-    def manage():
+    def manage() -> NoReturn:
         pass
 
     data = numpy.array(numpy.random.rand(rows_nb, len(columns)))
@@ -204,11 +204,11 @@ def test_massive_managing(queue_name, rows_nb, columns, dataframe_max_size):
 
 
 @pytest.mark.parametrize("queue_name, execution_nb, columns, dataframe_max_size, chunk_size", [
-    ("TEST_4", 5000, ['A', 'B', 'C', 'D'], 5, 1),
-    ("TEST_5", 5000, ['A', 'B', 'C', 'D'], 5, 5),
-    ("TEST_6", 5000, ['A', 'B', 'C', 'D'], 5, 10),
-    ("TEST_7", 5000, ['A', 'B', 'C', 'D'], 5, 100),
-    ("TEST_8", 5000, ['A', 'B', 'C', 'D'], 5, 1000)
+    ("TEST_5", 5000, ['A', 'B', 'C', 'D'], 5, 1),
+    ("TEST_6", 5000, ['A', 'B', 'C', 'D'], 5, 5),
+    ("TEST_7", 5000, ['A', 'B', 'C', 'D'], 5, 10),
+    ("TEST_8", 5000, ['A', 'B', 'C', 'D'], 5, 100),
+    ("TEST_9", 5000, ['A', 'B', 'C', 'D'], 5, 1000)
 ])
 def test_massive_managing_2(queue_name, execution_nb, columns, dataframe_max_size, chunk_size):
     dataframe = DataFrame(columns=columns)
@@ -216,7 +216,7 @@ def test_massive_managing_2(queue_name, execution_nb, columns, dataframe_max_siz
 
     @managing(queue_name=queue_name)
     @adding(queue_name=queue_name)
-    def add_rows(rows_nb):
+    def add_rows(rows_nb: int) -> List[Tuple[str, Dict]]:
         result = list()
         for _ in range(rows_nb):
             index = numpy.random.rand(1)[0]
