@@ -137,63 +137,71 @@ An game room has 6 clients but only 3 arcades and the manager wants to add a cha
 
 Initialization:
 
-    from pandas import DataFrame, Series
-    from random import randint
-    from dfqueue import assign_dataframe, managing, adding
-    
-    arcades_nb = 3
-    max_level = 5
-    checking_columns = ['REMAINING_LEVELS']
-    arcade_room = DataFrame(columns=checking_columns)
-    
-    clients = [
-    'BOB',
-    'JACK',
-    'TOM',
-    'DONALD',
-    'ARNOLD',
-    'WILLIAM'
-    ]
+```python
+from pandas import DataFrame, Series
+from random import randint
+from dfqueue import assign_dataframe, managing, adding
+
+arcades_nb = 3
+max_level = 5
+checking_columns = ['REMAINING_LEVELS']
+arcade_room = DataFrame(columns=checking_columns)
+
+clients = [
+'BOB',
+'JACK',
+'TOM',
+'DONALD',
+'ARNOLD',
+'WILLIAM'
+]
+```
     
 Dataframe assignation:
 
-    assign_dataframe(arcade_room, arcades_nb, checking_columns)
+```python
+assign_dataframe(arcade_room, arcades_nb, checking_columns)
+```
     
 Adding and managing function creation:
 
-    @managing()
-    @adding()
-    def new_session(new_players_nb=1):
-        current_players = list()
+```python
+@managing()
+@adding()
+def new_session(new_players_nb=1):
+    current_players = list()
 
-        if not arcade_room.empty:
-            # Udapte the current players
-            for label in arcade_room.index:
-                remaining_levels = arcade_room.at[label, 'REMAINING_LEVELS']
-                # Select a random value between 0 and the previous remaining levels
-                new_remaining_levels = randint(0, remaining_levels)
-                if new_remaining_levels != remaining_levels:
-                    if new_remaining_levels != 0:
-                        # Udapte the row in the dataframe
-                        arcade_room.at[label, 'REMAINING_LEVELS'] = new_remaining_levels
-                        # Add an item in the queue 
-                        current_players.append((label, {'REMAINING_LEVELS': new_remaining_levels}))
-                    else:
-                        arcade_room.drop([label], inplace=True)
+    if not arcade_room.empty:
+        # Udapte the current players
+        for label in arcade_room.index:
+            remaining_levels = arcade_room.at[label, 'REMAINING_LEVELS']
+            # Select a random value between 0 and the previous remaining levels
+            new_remaining_levels = randint(0, remaining_levels)
+            if new_remaining_levels != remaining_levels:
+                if new_remaining_levels != 0:
+                    # Udapte the row in the dataframe
+                    arcade_room.at[label, 'REMAINING_LEVELS'] = new_remaining_levels
+                    # Add an item in the queue 
+                    current_players.append((label, {'REMAINING_LEVELS': new_remaining_levels}))
+                else:
+                    arcade_room.drop([label], inplace=True)
 
-        # Add the new players in the queue and the dataframe
-        for _ in range(new_players_nb):
-            new_player = (clients.pop(0), {'REMAINING_LEVELS': max_level})
-            arcade_room.at[new_player[0]] = Series(data=new_player[1])
-            current_players.append(new_player)
+    # Add the new players in the queue and the dataframe
+    for _ in range(new_players_nb):
+        new_player = (clients.pop(0), {'REMAINING_LEVELS': max_level})
+        arcade_room.at[new_player[0]] = Series(data=new_player[1])
+        current_players.append(new_player)
 
-        # The results of functions decorated with the @adding decorator have to return a list of queue items (see documentation) 
-        return current_players
+    # The results of functions decorated with the @adding decorator have to return a list of queue items (see documentation) 
+    return current_players
+```
         
 The first session :
-    
-    # Add directly 3 players because the arcade room is empty
-    new_session(3)
+  
+```python
+# Add directly 3 players because the arcade room is empty
+new_session(3)
+```
     
 Result:
     
@@ -209,9 +217,11 @@ Result:
     +---------------+-------------------+
     
 The second session :
-    
-    # Only 1 new player this time
-    new_session()
+
+```python
+# Only 1 new player this time
+new_session()
+```
     
 Adding process:
     
@@ -245,10 +255,12 @@ Managing process (and final result):
     |     DONALD    |         5         |
     +---------------+-------------------+
 
-The third session :
-    
-    # Only 1 new player this time
-    new_session()
+The third session : 
+
+```python
+# Only 1 new player this time
+new_session()
+```
     
 Adding process:
     
@@ -272,8 +284,10 @@ Managing process didn't do anything because the max size of the dataframe was no
 
 The last session :
     
-    # Only 1 new player this time
-    new_session()
+```python
+# Only 1 new player this time
+new_session()
+```
     
 Adding process:
     
