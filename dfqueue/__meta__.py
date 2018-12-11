@@ -4,7 +4,7 @@ __version__ = "0.1"
 
 __author__ = "Jean-Charles Hardy"
 
-__author_email__ = ""
+__author_email__ = "jeancharles.hardy2224@gmail.com"
 
 __licence__ = "MIT"
 
