@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 from itertools import compress
 
@@ -60,10 +60,9 @@ class QueuesHandler:
             return self.__default_queue_name
 
         def get_assigned_lock(self, queue_name: str) -> Lock:
-            try:
-                return self.__assigned_locks[queue_name]
-            except KeyError:
-                raise KeyError("The queue '{}' doesn't exist".format(queue_name))
+            assert queue_name in self.__assigned_locks, \
+                "The queue '{}' doesn't exist".format(queue_name)
+            return self.__assigned_locks[queue_name]
 
         def assign_lock(self, queue_name: str, assigned_dataframe: DataFrame) -> NoReturn:
             queue_names = [selected_queue_name for (selected_queue_name, selected_dataframe) in
@@ -83,12 +82,17 @@ class QueuesHandler:
                 self.__assigned_locks[queue_name] = Lock()
 
         def __getitem__(self, queue_name: str) -> Dict[QueueHandlerItem, Any]:
-            try:
-                return {QueueHandlerItem.QUEUE: self.__queues[queue_name],
-                        QueueHandlerItem.DATAFRAME: self.__assigned_dataframes[queue_name],
-                        QueueHandlerItem.MAX_SIZE: self.__assigned_dataframe_max_sizes[queue_name]}
-            except KeyError:
-                raise KeyError("The queue '{}' doesn't exist".format(queue_name))
+            assert queue_name in self.__queues, \
+                "The queue '{}' doesn't exist".format(queue_name)
+            assert queue_name in self.__assigned_dataframes, \
+                "The assigned dataframe for the queue '{}' doesn't exist".format(queue_name)
+            assert queue_name in self.__assigned_dataframe_max_sizes, \
+                "The assigned dataframe's max size for " \
+                "the queue '{}' doesn't exist".format(queue_name)
+
+            return {QueueHandlerItem.QUEUE: self.__queues[queue_name],
+                    QueueHandlerItem.DATAFRAME: self.__assigned_dataframes[queue_name],
+                    QueueHandlerItem.MAX_SIZE: self.__assigned_dataframe_max_sizes[queue_name]}
 
         def __setitem__(self, queue_name: str, items: dict) -> NoReturn:
             assert len(items) == len(QueueHandlerItem), \
@@ -192,35 +196,38 @@ def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] 
             else:
                 new_result = queue_items_creation_function(result, **other_args)
 
-            # Check result's format
-            assigned_dataframe_columns = list(queue_data[QueueHandlerItem.DATAFRAME])
-            assert isinstance(new_result, (list, tuple)), \
-                "Queue's items must be contained in a list or a tuple object"
-            for index, item in enumerate(new_result):
-                assert isinstance(item, (list, tuple)) and len(item) == 2, \
-                    "Item {} : The new queue's item must be a list or a " \
-                    "tuple with length of 2".format(index)
-                assert isinstance(item[1], dict), \
-                    "Item {} : The second element of the new queue's " \
-                    "item must be a dictionary".format(index)
-                for key in item[1]:
-                    assert key in assigned_dataframe_columns, \
-                        "Item {} : Column {} in the second element of the new queue's item is not" \
-                        " in the assigned dataframe : {}".format(list(result[1].keys()), key, index)
+            if __debug__:
+                # Check result's format
+                assigned_dataframe_columns = list(queue_data[QueueHandlerItem.DATAFRAME])
+                assert isinstance(new_result, (list, tuple)), \
+                    "Queue's items must be contained in a list or a tuple object"
+                for index, item in enumerate(new_result):
+                    assert isinstance(item, (list, tuple)) and len(item) == 2, \
+                        "Item {} : The new queue's item must be a list or a " \
+                        "tuple with length of 2".format(index)
+                    assert isinstance(item[1], dict), \
+                        "Item {} : The second element of the new queue's " \
+                        "item must be a dictionary".format(index)
+                    for key in item[1]:
+                        assert key in assigned_dataframe_columns, \
+                            "Item {} : Column {} in the second element of the new queue's " \
+                            "item is not in the assigned dataframe : " \
+                            "{}".format(list(result[1].keys()), key, index)
 
             for item in new_result:
                 queue_data[QueueHandlerItem.QUEUE].append(item)
-                logging.debug(
-                    __create_logging_message("New item added in the queue '{}' : {}\n"
-                                             "Size of the queue : {}\n"
-                                             "Size of the assigned dataframe : {}\n"
-                                             "Max size of the assigned "
-                                             "dataframe : {}".
-                                             format(real_queue_name,
-                                                    item,
-                                                    len(queue_data[QueueHandlerItem.QUEUE]),
-                                                    len(queue_data[QueueHandlerItem.DATAFRAME]),
-                                                    queue_data[QueueHandlerItem.MAX_SIZE])))
+                if __debug__:
+                    logging.debug(
+                        __create_logging_message("New item added in the queue '{}' : {}\n"
+                                                 "Size of the queue : {}\n"
+                                                 "Size of the assigned dataframe : {}\n"
+                                                 "Max size of the assigned "
+                                                 "dataframe : {}".
+                                                 format(real_queue_name,
+                                                        item,
+                                                        len(queue_data[QueueHandlerItem.QUEUE]),
+                                                        len(queue_data[QueueHandlerItem.DATAFRAME]),
+                                                        queue_data[QueueHandlerItem.MAX_SIZE])))
 
             return result
         return wrapper
@@ -282,18 +289,20 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                                                                           row.name if all(row)
                                                                           else None, axis=1)))
                 dataframe.drop(new_selected_labels, inplace=True)
-                logging.debug(
-                    __create_logging_message("Item removed from the queue '{}' : {}\n"
-                                             "Size of the queue : {}\n"
-                                             "Size of the assigned dataframe : {}\n"
-                                             "Max size of the assigned dataframe : {}".
-                                             format(real_queue_name,
-                                                    "\n".join(
-                                                        [str((label, values))
-                                                         for label, values in queue_items.items()]),
-                                                    len(queue),
-                                                    len(dataframe),
-                                                    max_size)))
+                if __debug__:
+                    logging.debug(
+                        __create_logging_message("Item removed from the queue '{}' : {}\n"
+                                                 "Size of the queue : {}\n"
+                                                 "Size of the assigned dataframe : {}\n"
+                                                 "Max size of the assigned dataframe : {}".
+                                                 format(real_queue_name,
+                                                        "\n".join(
+                                                            [str((label, values))
+                                                             for label, values in
+                                                             queue_items.items()]),
+                                                        len(queue),
+                                                        len(dataframe),
+                                                        max_size)))
                 items_nb = get_items_nb()
 
             return result
@@ -375,12 +384,13 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
                                 QueueHandlerItem.MAX_SIZE: max_size}
     # noinspection PyProtectedMember
     QueuesHandler._QueuesHandler__instance.assign_lock(queue_name, dataframe)
-    logging.debug(
-        __create_logging_message("New dataframe assigned to the queue '{}'\n"
-                                 "Size of the queue : {}\n"
-                                 "Size of the assigned dataframe : {}\n"
-                                 "Max size of the assigned dataframe : {}".
-                                 format(real_queue_name,
-                                        len(reseted_queue),
-                                        len(dataframe) if dataframe is not None else None,
-                                        max_size)))
+    if __debug__:
+        logging.debug(
+            __create_logging_message("New dataframe assigned to the queue '{}'\n"
+                                     "Size of the queue : {}\n"
+                                     "Size of the assigned dataframe : {}\n"
+                                     "Max size of the assigned dataframe : {}".
+                                     format(real_queue_name,
+                                            len(reseted_queue),
+                                            len(dataframe) if dataframe is not None else None,
+                                            max_size)))

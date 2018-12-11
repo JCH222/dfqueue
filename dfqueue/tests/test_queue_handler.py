@@ -35,7 +35,7 @@ def test_invalid_get_item():
     handler = QueuesHandler()
     invalid_queue_name = "UNKNOWN"
 
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         handler[invalid_queue_name]
 
 
