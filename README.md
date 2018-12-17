@@ -324,3 +324,10 @@ Managing process (and final result):
     +---------------+-------------------+           +-------------------------------------+
     |     WILLIAM   |         5         |           
     +---------------+-------------------+
+
+
+Notes
+-----
+
+- DfQueue doesn't support dataframes with multiindexes.
+- The new value of a checking value has to be different from the previous values. For example, it can be strictly decreasing or increasing (see the REMAINING_LEVELS value for each player in the example above).
