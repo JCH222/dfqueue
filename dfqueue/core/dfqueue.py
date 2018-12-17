@@ -365,20 +365,26 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
         :type queue_name: Union[str, None]
     """
 
-    assert all([selected_column in dataframe.columns for selected_column in selected_columns]
-               if dataframe is not None else [True]), \
-        "Selected columns don't exist in the dataframe"
+    if __debug__ and dataframe is not None:
+        columns = dataframe.columns
+        for selected_column in selected_columns:
+            assert selected_column in columns, \
+                "Selected columns {} doesn't exist in the dataframe".format(selected_column)
+
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue
-    reseted_queue = dataframe.apply(lambda row:
-                                    (row.name,
-                                     {selected_column: row[selected_column]
-                                      for selected_column in selected_columns}), axis=1) \
-        if dataframe is not None else []
-    if isinstance(reseted_queue, DataFrame):
-        assert reseted_queue.empty is True
+    if dataframe is not None:
+        if not dataframe.empty:
+            reseted_queue = dataframe.apply(lambda row:
+                                            (row.name,
+                                             {column: row[column]
+                                              for column in selected_columns}), axis=1)
+        else:
+            reseted_queue = []
+    else:
         reseted_queue = []
+
     handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue,
                                 QueueHandlerItem.DATAFRAME: dataframe,
                                 QueueHandlerItem.MAX_SIZE: max_size}
