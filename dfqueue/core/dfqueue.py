@@ -415,3 +415,42 @@ def list_queue_names() -> Tuple[str]:
 
     # noinspection PyProtectedMember
     return QueuesHandler()._QueuesHandler__instance.list_queue_names()
+
+
+class QueueInfo:
+    def __init__(self, queue_name: Union[str, None]):
+        if __debug__ and queue_name is not None:
+            assert queue_name in list_queue_names(), \
+                "The queue '{}' doesn't exist".format(queue_name)
+
+        handler = QueuesHandler()
+        if queue_name is None:
+            queue_name = handler.default_queue_name
+
+        self.__queue_name = queue_name
+        if queue_name == handler.default_queue_name:
+            self.__is_default_queue = True
+        else:
+            self.__is_default_queue = False
+        self.__queue_data = handler[queue_name]
+
+    @property
+    def queue_name(self) -> str:
+        return self.__queue_name
+
+    @property
+    def is_default_queue(self) -> bool:
+        return self.__is_default_queue
+
+    @property
+    def assigned_dataframe(self) -> DataFrame:
+        return self.__queue_data[QueueHandlerItem.DATAFRAME]
+
+    @property
+    def max_size(self) -> int:
+        return self.__queue_data[QueueHandlerItem.MAX_SIZE]
+
+    @property
+    def queue(self):
+        # TODO
+        pass
