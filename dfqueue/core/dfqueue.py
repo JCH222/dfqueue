@@ -64,6 +64,9 @@ class QueuesHandler:
                 "The queue '{}' doesn't exist".format(queue_name)
             return self.__assigned_locks[queue_name]
 
+        def list_queue_names(self) -> Tuple[str]:
+            return tuple(self.__queues.keys())
+
         def assign_lock(self, queue_name: str, assigned_dataframe: DataFrame) -> NoReturn:
             queue_names = [selected_queue_name for (selected_queue_name, selected_dataframe) in
                            self.__assigned_dataframes.items() if
@@ -400,3 +403,15 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
                                             len(reseted_queue),
                                             len(dataframe) if dataframe is not None else None,
                                             max_size)))
+
+
+def list_queue_names() -> Tuple[str]:
+    """
+        List all current queue names.
+
+        :return: Current queue names
+        :rtype: Tuple[str]
+    """
+
+    # noinspection PyProtectedMember
+    return QueuesHandler._QueuesHandler__instance.list_queue_names()
