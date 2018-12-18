@@ -13,7 +13,7 @@ from pandas import DataFrame
 from itertools import compress
 
 
-__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', ]
+__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names']
 
 
 class QueueHandlerItem(Enum):
@@ -414,4 +414,4 @@ def list_queue_names() -> Tuple[str]:
     """
 
     # noinspection PyProtectedMember
-    return QueuesHandler._QueuesHandler__instance.list_queue_names()
+    return QueuesHandler()._QueuesHandler__instance.list_queue_names()
