@@ -4,6 +4,7 @@ import logging
 
 from uuid import uuid4
 from collections import deque
+from itertools import islice
 from enum import Enum
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
@@ -418,7 +419,19 @@ def list_queue_names() -> Tuple[str]:
 
 
 class QueueInfo:
-    def __init__(self, queue_name: Union[str, None]):
+    class QueueWrapper:
+        def __init__(self, queue: deque):
+            self.__queue = queue
+
+        def __getitem__(self, item):
+            if isinstance(item, int):
+                return self.__queue[item]
+            elif isinstance(item, slice):
+                return tuple(islice(self.__queue, item.start, item.stop, item.step))
+            else:
+                raise ValueError("")
+
+    def __init__(self, queue_name: Union[str, None] = None):
         if __debug__ and queue_name is not None:
             assert queue_name in list_queue_names(), \
                 "The queue '{}' doesn't exist".format(queue_name)
@@ -451,6 +464,5 @@ class QueueInfo:
         return self.__queue_data[QueueHandlerItem.MAX_SIZE]
 
     @property
-    def queue(self):
-        # TODO
-        pass
+    def queue(self) -> QueueWrapper:
+        return QueueInfo.QueueWrapper(self.__queue_data[QueueHandlerItem.QUEUE])
