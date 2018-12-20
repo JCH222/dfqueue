@@ -418,34 +418,44 @@ def list_queue_names() -> Tuple[str]:
     return QueuesHandler()._QueuesHandler__instance.list_queue_names()
 
 
-class QueueInfo:
+class QueueInfoProvider:
     class QueueWrapper:
-        def __init__(self, queue: deque):
-            self.__queue = queue
+        def __init__(self, queue_name: str):
+            self.__queue_handler = QueuesHandler()
+            self.__queue_name = queue_name
 
         def __getitem__(self, item):
             if isinstance(item, int):
-                return self.__queue[item]
+                return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE][item]
             elif isinstance(item, slice):
-                return tuple(islice(self.__queue, item.start, item.stop, item.step))
+                queue = self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE]
+                return tuple(islice(queue, item.start, item.stop, item.step))
             else:
-                raise ValueError("")
+                raise ValueError("Item type {} not allowed (only int or slice)".format(type(item)))
+
+        def __len__(self):
+            return len(self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE])
+
+        def __iter__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__iter__()
+
+        def __next__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__next__()
 
     def __init__(self, queue_name: Union[str, None] = None):
         if __debug__ and queue_name is not None:
             assert queue_name in list_queue_names(), \
                 "The queue '{}' doesn't exist".format(queue_name)
 
-        handler = QueuesHandler()
+        self.__handler = QueuesHandler()
         if queue_name is None:
-            queue_name = handler.default_queue_name
+            queue_name = self.__handler.default_queue_name
 
         self.__queue_name = queue_name
-        if queue_name == handler.default_queue_name:
+        if queue_name == self.__handler.default_queue_name:
             self.__is_default_queue = True
         else:
             self.__is_default_queue = False
-        self.__queue_data = handler[queue_name]
 
     @property
     def queue_name(self) -> str:
@@ -457,12 +467,12 @@ class QueueInfo:
 
     @property
     def assigned_dataframe(self) -> DataFrame:
-        return self.__queue_data[QueueHandlerItem.DATAFRAME]
+        return self.__handler[self.__queue_name][QueueHandlerItem.DATAFRAME]
 
     @property
     def max_size(self) -> int:
-        return self.__queue_data[QueueHandlerItem.MAX_SIZE]
+        return self.__handler[self.__queue_name][QueueHandlerItem.MAX_SIZE]
 
     @property
     def queue(self) -> QueueWrapper:
-        return QueueInfo.QueueWrapper(self.__queue_data[QueueHandlerItem.QUEUE])
+        return QueueInfoProvider.QueueWrapper(self.__queue_name)
