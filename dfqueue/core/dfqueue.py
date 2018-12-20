@@ -14,7 +14,8 @@ from pandas import DataFrame
 from itertools import compress
 
 
-__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names']
+__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
+           'QueueInfoProvider']
 
 
 class QueueHandlerItem(Enum):
@@ -431,7 +432,8 @@ class QueueInfoProvider:
                 queue = self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE]
                 return tuple(islice(queue, item.start, item.stop, item.step))
             else:
-                raise ValueError("Item type {} not allowed (only int or slice)".format(type(item)))
+                raise ValueError("Item type {} not allowed "
+                                 "(only int or slice)".format(type(item).__name__))
 
         def __len__(self):
             return len(self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE])
@@ -441,6 +443,12 @@ class QueueInfoProvider:
 
         def __next__(self):
             return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__next__()
+
+        def __str__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__str__()
+
+        def __repr__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__repr__()
 
     def __init__(self, queue_name: Union[str, None] = None):
         if __debug__ and queue_name is not None:
@@ -476,3 +484,6 @@ class QueueInfoProvider:
     @property
     def queue(self) -> QueueWrapper:
         return QueueInfoProvider.QueueWrapper(self.__queue_name)
+
+    def __repr__(self):
+        return "{} : {}".format(type(self).__name__, self.__queue_name)
