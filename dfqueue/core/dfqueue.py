@@ -420,7 +420,19 @@ def list_queue_names() -> Tuple[str]:
 
 
 class QueueInfoProvider:
+    """
+        It provides access to specific queue data in read only mode.
+    """
     class QueueWrapper:
+        """
+            Queue wrapper provides access to a specific queue in read only mode.
+
+            It may be manipulated as a list:
+            - brackets with int type
+            - brackets with slice type
+            - len function
+            - iteration
+        """
         def __init__(self, queue_name: str):
             self.__queue_handler = QueuesHandler()
             self.__queue_name = queue_name
@@ -490,4 +502,13 @@ class QueueInfoProvider:
 
 
 def get_info_provider(queue_name: Union[str, None] = None) -> QueueInfoProvider:
+    """
+        Generate an information provider to a specific queue.
+
+        :param queue_name: Selected queue name
+        :type queue_name: Union[str, None]
+
+        :return: Queue information provider
+        :rtype: QueueInfoProvider
+    """
     return QueueInfoProvider(queue_name=queue_name)
