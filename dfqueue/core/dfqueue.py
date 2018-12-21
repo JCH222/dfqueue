@@ -15,7 +15,7 @@ from itertools import compress
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
-           'QueueInfoProvider']
+           'get_info_provider']
 
 
 class QueueHandlerItem(Enum):
@@ -487,3 +487,7 @@ class QueueInfoProvider:
 
     def __repr__(self):
         return "{} : {}".format(type(self).__name__, self.__queue_name)
+
+
+def get_info_provider(queue_name: Union[str, None] = None) -> QueueInfoProvider:
+    return QueueInfoProvider(queue_name=queue_name)

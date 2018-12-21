@@ -4,7 +4,7 @@ from uuid import uuid4
 # noinspection PyPackageRequirements
 from numpy import array
 from pandas import DataFrame
-from dfqueue import assign_dataframe, QueueInfoProvider
+from dfqueue import assign_dataframe, get_info_provider
 # noinspection PyPackageRequirements
 import pytest
 
@@ -16,7 +16,7 @@ def test_queue_info_provider():
     max_size = 4
     assign_dataframe(dataframe, max_size, selected_columns=['A', 'D'], queue_name=queue_name)
 
-    provider = QueueInfoProvider(queue_name)
+    provider = get_info_provider(queue_name)
 
     assert id(provider.assigned_dataframe) == id(dataframe)
     assert provider.max_size == max_size
@@ -41,12 +41,12 @@ def test_queue_info_provider():
 
 
 def test_queue_info_provider_default_queue():
-    provider = QueueInfoProvider()
+    provider = get_info_provider()
     assert provider.is_default_queue is True
 
 
 def test_queue_info_provider_error():
-    provider = QueueInfoProvider()
+    provider = get_info_provider()
 
     with pytest.raises(ValueError):
         provider.queue['a']
