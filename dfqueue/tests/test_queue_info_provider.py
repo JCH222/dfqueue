@@ -62,3 +62,6 @@ def test_queue_info_provider_error():
 
     with pytest.raises(AttributeError):
         provider.assigned_dataframe = DataFrame()
+
+    with pytest.raises(AssertionError):
+        get_info_provider(str(uuid4()))
