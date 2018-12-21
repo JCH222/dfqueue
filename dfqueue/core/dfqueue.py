@@ -4,6 +4,7 @@ import logging
 
 from uuid import uuid4
 from collections import deque
+from itertools import islice
 from enum import Enum
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
@@ -13,7 +14,8 @@ from pandas import DataFrame
 from itertools import compress
 
 
-__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', ]
+__all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
+           'get_info_provider']
 
 
 class QueueHandlerItem(Enum):
@@ -63,6 +65,9 @@ class QueuesHandler:
             assert queue_name in self.__assigned_locks, \
                 "The queue '{}' doesn't exist".format(queue_name)
             return self.__assigned_locks[queue_name]
+
+        def list_queue_names(self) -> Tuple[str]:
+            return tuple(self.__queues.keys())
 
         def assign_lock(self, queue_name: str, assigned_dataframe: DataFrame) -> NoReturn:
             queue_names = [selected_queue_name for (selected_queue_name, selected_dataframe) in
@@ -400,3 +405,110 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
                                             len(reseted_queue),
                                             len(dataframe) if dataframe is not None else None,
                                             max_size)))
+
+
+def list_queue_names() -> Tuple[str]:
+    """
+        List all current queue names.
+
+        :return: Current queue names
+        :rtype: Tuple[str]
+    """
+
+    # noinspection PyProtectedMember
+    return QueuesHandler()._QueuesHandler__instance.list_queue_names()
+
+
+class QueueInfoProvider:
+    """
+        It provides access to specific queue data in read only mode.
+    """
+    class QueueWrapper:
+        """
+            Queue wrapper provides access to a specific queue in read only mode.
+
+            It may be manipulated as a list:
+            - brackets with int type
+            - brackets with slice type
+            - len function
+            - iteration
+        """
+        def __init__(self, queue_name: str):
+            self.__queue_handler = QueuesHandler()
+            self.__queue_name = queue_name
+
+        def __getitem__(self, item):
+            if isinstance(item, int):
+                return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE][item]
+            elif isinstance(item, slice):
+                queue = self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE]
+                return tuple(islice(queue, item.start, item.stop, item.step))
+            else:
+                raise ValueError("Item type {} not allowed "
+                                 "(only int or slice)".format(type(item).__name__))
+
+        def __len__(self):
+            return len(self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE])
+
+        def __iter__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__iter__()
+
+        def __next__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__next__()
+
+        def __str__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__str__()
+
+        def __repr__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__repr__()
+
+    def __init__(self, queue_name: Union[str, None] = None):
+        if __debug__ and queue_name is not None:
+            assert queue_name in list_queue_names(), \
+                "The queue '{}' doesn't exist".format(queue_name)
+
+        self.__handler = QueuesHandler()
+        if queue_name is None:
+            queue_name = self.__handler.default_queue_name
+
+        self.__queue_name = queue_name
+        if queue_name == self.__handler.default_queue_name:
+            self.__is_default_queue = True
+        else:
+            self.__is_default_queue = False
+
+    @property
+    def queue_name(self) -> str:
+        return self.__queue_name
+
+    @property
+    def is_default_queue(self) -> bool:
+        return self.__is_default_queue
+
+    @property
+    def assigned_dataframe(self) -> DataFrame:
+        return self.__handler[self.__queue_name][QueueHandlerItem.DATAFRAME]
+
+    @property
+    def max_size(self) -> int:
+        return self.__handler[self.__queue_name][QueueHandlerItem.MAX_SIZE]
+
+    @property
+    def queue(self) -> QueueWrapper:
+        return QueueInfoProvider.QueueWrapper(self.__queue_name)
+
+    def __repr__(self):
+        return "{} : {}".format(type(self).__name__, self.__queue_name)
+
+
+def get_info_provider(queue_name: Union[str, None] = None) -> QueueInfoProvider:
+    """
+        Generate an information provider to a specific queue.
+
+        :param queue_name: Selected queue name
+        :type queue_name: Union[str, None]
+
+        :return: Queue information provider
+        :rtype: QueueInfoProvider
+    """
+    return QueueInfoProvider(queue_name=queue_name)
