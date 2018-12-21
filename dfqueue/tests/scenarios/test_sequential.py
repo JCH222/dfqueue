@@ -1,12 +1,13 @@
 # coding: utf8
 
 import time
+from uuid import uuid4
 import logging
 from collections import deque
 from typing import Tuple, Dict, List, NoReturn
 # noinspection PyPackageRequirements
 import numpy
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, MultiIndex
 # noinspection PyPackageRequirements
 import pytest
 # noinspection PyProtectedMember
@@ -22,8 +23,12 @@ logging.getLogger().setLevel("DEBUG")
     "TEST_1",
     "TEST_2"
 ])
-def test_sequential_1(queue_name):
-    selected_columns = ["B", "D"]
+@pytest.mark.parametrize("columns, selected_columns", [
+    (['A', 'B', 'C', 'D'], ['B', 'D']),
+    (MultiIndex.from_tuples(list(zip(*[['A', 'A', 'B', 'B'], ['1', '2', '1', '2']])),
+                            names=['first', 'second']), [('A', '1'), ('B', '2')])
+])
+def test_sequential_1(queue_name, columns, selected_columns):
     queue_name = queue_name if queue_name is not None else QueuesHandler().default_queue_name
 
     @managing(queue_name=queue_name)
@@ -43,90 +48,97 @@ def test_sequential_1(queue_name):
                                     new_columns_dict: dict) -> Tuple[str, Dict]:
         return change_row_value(dataframe, index, new_columns_dict)
 
-    dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
+    dataframe = DataFrame(columns=columns)
     assign_dataframe(dataframe, 2, selected_columns, queue_name)
 
     assert dataframe.empty
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque()
 
-    sequential_add_row(dataframe, "1", {'A': 1.0, 'B': 2.0, 'C': 3.0, 'D': 4.0})
+    columns_dict_row_1 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "1", columns_dict_row_1)
     assert len(dataframe) == 1
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("1",
-                                                                         {'B': 2.0, 'D': 4.0})])
+    result_row_1 = ("1", {selected_column: columns_dict_row_1[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_1])
 
-    sequential_add_row(dataframe, "2", {'A': 5.0, 'B': 6.0, 'C': 7.0, 'D': 8.0})
+    columns_dict_row_2 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "2", columns_dict_row_2)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("1",
-                                                                         {'B': 2.0, 'D': 4.0}),
-                                                                        ("2",
-                                                                         {'B': 6.0, 'D': 8.0})])
+    result_row_2 = ("2", {selected_column: columns_dict_row_2[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_1,
+                                                                        result_row_2])
 
-    sequential_add_row(dataframe, "3", {'A': 9.0, 'B': 10.0, 'C': 11.0, 'D': 12.0})
+    columns_dict_row_3 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "3", columns_dict_row_3)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2",
-                                                                         {'B': 6.0, 'D': 8.0}),
-                                                                        ("3",
-                                                                         {'B': 10.0, 'D': 12.0})])
+    result_row_3 = ("3", {selected_column: columns_dict_row_3[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_2,
+                                                                        result_row_3])
 
     remove_row(dataframe, "3")
     assert len(dataframe) == 1
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2",
-                                                                         {'B': 6.0, 'D': 8.0}),
-                                                                        ("3",
-                                                                         {'B': 10.0, 'D': 12.0})])
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_2,
+                                                                        result_row_3])
 
     remove_row(dataframe, "2")
     assert dataframe.empty
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2",
-                                                                         {'B': 6.0, 'D': 8.0}),
-                                                                        ("3",
-                                                                         {'B': 10.0, 'D': 12.0})])
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_2,
+                                                                        result_row_3])
 
-    sequential_add_row(dataframe, "4", {'A': 13.0, 'B': 14.0, 'C': 15.0, 'D': 16.0})
-    sequential_add_row(dataframe, "5", {'A': 17.0, 'B': 18.0, 'C': 19.0, 'D': 20.0})
+    columns_dict_row_4 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "4", columns_dict_row_4)
+    columns_dict_row_5 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "5", columns_dict_row_5)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("2",
-                                                                         {'B': 6.0, 'D': 8.0}),
-                                                                        ("3",
-                                                                         {'B': 10.0, 'D': 12.0}),
-                                                                        ("4",
-                                                                         {'B': 14.0, 'D': 16.0}),
-                                                                        ("5",
-                                                                         {'B': 18.0, 'D': 20.0})])
+    result_row_4 = ("4", {selected_column: columns_dict_row_4[selected_column]
+                          for selected_column in selected_columns})
+    result_row_5 = ("5", {selected_column: columns_dict_row_5[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_2,
+                                                                        result_row_3,
+                                                                        result_row_4,
+                                                                        result_row_5])
 
-    sequential_add_row(dataframe, "6", {'A': 21.0, 'B': 22.0, 'C': 23.0, 'D': 24.0})
+    columns_dict_row_6 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "6", columns_dict_row_6)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("5",
-                                                                         {'B': 18.0, 'D': 20.0}),
-                                                                        ("6",
-                                                                         {'B': 22.0, 'D': 24.0})])
+    result_row_6 = ("6", {selected_column: columns_dict_row_6[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_5,
+                                                                        result_row_6])
 
-    sequential_change_row_value(dataframe, "5", {'A': 25.0, 'B': 26.0, 'C': 27.0, 'D': 28.0})
+    new_columns_dict_row_5 = {column: str(uuid4()) for column in columns}
+    sequential_change_row_value(dataframe, "5", new_columns_dict_row_5)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("5",
-                                                                         {'B': 18.0, 'D': 20.0}),
-                                                                        ("6",
-                                                                         {'B': 22.0, 'D': 24.0}),
-                                                                        ("5",
-                                                                         {'B': 26.0, 'D': 28.0})])
+    new_result_row_5 = ("5", {selected_column: new_columns_dict_row_5[selected_column]
+                              for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_5,
+                                                                        result_row_6,
+                                                                        new_result_row_5])
 
-    sequential_add_row(dataframe, "7", {'A': 29.0, 'B': 30.0, 'C': 31.0, 'D': 32.0})
+    columns_dict_row_7 = {column: str(uuid4()) for column in columns}
+    sequential_add_row(dataframe, "7", columns_dict_row_7)
     assert len(dataframe) == 2
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([("5",
-                                                                         {'B': 26.0, 'D': 28.0}),
-                                                                        ("7",
-                                                                         {'B': 30.0, 'D': 32.0})])
+    result_row_7 = ("7", {selected_column: columns_dict_row_7[selected_column]
+                          for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([new_result_row_5,
+                                                                        result_row_7])
 
 
 @pytest.mark.parametrize("queue_name", [
     "TEST_3"
 ])
-def test_sequential_2(queue_name):
-    selected_columns_a = ["A", "B"]
-
+@pytest.mark.parametrize("columns, selected_columns", [
+    (['A', 'B', 'C', 'D'], ['A', 'B']),
+    (MultiIndex.from_tuples(list(zip(*[['A', 'A', 'B', 'B'], ['1', '2', '1', '2']])),
+                            names=['first', 'second']), [('A', '1'), ('B', '2')])
+])
+def test_sequential_2(queue_name, columns, selected_columns):
     @managing(queue_name=queue_name)
     @adding(queue_items_creation_function=create_queue_items,
-            other_args={"selected_columns": selected_columns_a}, queue_name=queue_name)
+            other_args={"selected_columns": selected_columns}, queue_name=queue_name)
     def sequential_add_rows(dataframe: DataFrame,
                             indexes: List[str],
                             columns_dicts: List[dict]) -> List[Tuple[str, Dict]]:
@@ -136,48 +148,67 @@ def test_sequential_2(queue_name):
             result.append(add_row(dataframe, index, columns_dict))
         return result
 
-    dataframe = DataFrame(columns=['A', 'B', 'C', 'D'])
-    assign_dataframe(dataframe, 5, selected_columns_a, queue_name)
-
+    dataframe = DataFrame(columns=columns)
+    assign_dataframe(dataframe, 5, selected_columns, queue_name)
     assert dataframe.empty
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque()
 
-    sequential_add_rows(dataframe, ["1"], [{'A': 1.0, 'B': 2.0, 'C': 3.0, 'D': 4.0}])
+    columns_dict_row_1 = {column: str(uuid4()) for column in columns}
+    sequential_add_rows(dataframe, ["1"], [columns_dict_row_1])
     assert len(dataframe) == 1
-    assert QueuesHandler()._QueuesHandler__queues[queue_name] == \
-           deque([("1", {'A': 1.0, 'B': 2.0})])
+    result_row_1 = ("1", {selected_column: columns_dict_row_1[selected_column]
+                              for selected_column in selected_columns})
+    assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_1])
 
+    columns_dict_row_2 = {column: str(uuid4()) for column in columns}
+    columns_dict_row_3 = {column: str(uuid4()) for column in columns}
+    columns_dict_row_4 = {column: str(uuid4()) for column in columns}
     sequential_add_rows(dataframe,
                         ["2", "3", "4"],
                         [
-                            {'A': 5.0, 'B': 6.0, 'C': 7.0, 'D': 8.0},
-                            {'A': 9.0, 'B': 10.0, 'C': 11.0, 'D': 12.0},
-                            {'A': 13.0, 'B': 14.0, 'C': 15.0, 'D': 16.0}
+                            columns_dict_row_2,
+                            columns_dict_row_3,
+                            columns_dict_row_4
                         ]
                         )
     assert len(dataframe) == 4
+    result_row_2 = ("2", {selected_column: columns_dict_row_2[selected_column]
+                          for selected_column in selected_columns})
+    result_row_3 = ("3", {selected_column: columns_dict_row_3[selected_column]
+                          for selected_column in selected_columns})
+    result_row_4 = ("4", {selected_column: columns_dict_row_4[selected_column]
+                          for selected_column in selected_columns})
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([
-        ("1", {'A': 1.0, 'B': 2.0}),
-        ("2", {'A': 5.0, 'B': 6.0}),
-        ("3", {'A': 9.0, 'B': 10.0}),
-        ("4", {'A': 13.0, 'B': 14.0})
+        result_row_1,
+        result_row_2,
+        result_row_3,
+        result_row_4
     ])
 
+    columns_dict_row_5 = {column: str(uuid4()) for column in columns}
+    columns_dict_row_6 = {column: str(uuid4()) for column in columns}
+    columns_dict_row_7 = {column: str(uuid4()) for column in columns}
     sequential_add_rows(dataframe,
                         ["5", "6", "7"],
                         [
-                            {'A': 17.0, 'B': 18.0, 'C': 19.0, 'D': 20.0},
-                            {'A': 21.0, 'B': 22.0, 'C': 23.0, 'D': 24.0},
-                            {'A': 25.0, 'B': 26.0, 'C': 27.0, 'D': 28.0}
+                            columns_dict_row_5,
+                            columns_dict_row_6,
+                            columns_dict_row_7
                         ]
                         )
     assert len(dataframe) == 5
+    result_row_5 = ("5", {selected_column: columns_dict_row_5[selected_column]
+                          for selected_column in selected_columns})
+    result_row_6 = ("6", {selected_column: columns_dict_row_6[selected_column]
+                          for selected_column in selected_columns})
+    result_row_7 = ("7", {selected_column: columns_dict_row_7[selected_column]
+                          for selected_column in selected_columns})
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([
-        ("3", {'A': 9.0, 'B': 10.0}),
-        ("4", {'A': 13.0, 'B': 14.0}),
-        ("5", {'A': 17.0, 'B': 18.0}),
-        ("6", {'A': 21.0, 'B': 22.0}),
-        ("7", {'A': 25.0, 'B': 26.0})
+        result_row_3,
+        result_row_4,
+        result_row_5,
+        result_row_6,
+        result_row_7
     ])
 
 
