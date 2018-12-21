@@ -283,6 +283,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                     selected_checking_values = queue_items[selected_label]
                     selected_checking_values_list.append(selected_checking_values)
                     selected_columns.update(selected_checking_values.keys())
+                selected_columns = list(selected_columns)
 
                 original_dataframe = dataframe.loc[selected_labels, selected_columns]
                 queue_items_dataframe = DataFrame(data=selected_checking_values_list,
