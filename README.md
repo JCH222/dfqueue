@@ -330,4 +330,5 @@ Notes
 -----
 
 - DfQueue doesn't support dataframes with rows multiindexes.
-- The new value of a checking value has to be different from the previous values. For example, it can be strictly decreasing or increasing (see the REMAINING_LEVELS value for each player in the example above).
+- The new value of a checking values dictionary in a queue item has to be different from the previous ones. For example, it can be strictly decreasing or increasing if there is only one key in the dictionary (see the REMAINING_LEVELS value for each player in the example above).
+- One managing process with multiple removed rows is faster than multiple managing processes with only one removed row.
