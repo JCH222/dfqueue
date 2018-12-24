@@ -385,7 +385,9 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
             reseted_queue = dataframe.apply(lambda row:
                                             (row.name,
                                              {column: row[column]
-                                              for column in selected_columns}), axis=1)
+                                              for column in selected_columns}),
+                                            axis=1,
+                                            result_type='reduce')
         else:
             reseted_queue = []
     else:
