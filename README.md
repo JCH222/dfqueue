@@ -38,7 +38,7 @@ Queue evolution example:
     +-------------------------------+  
 
 
-    # Adding rows with only <COLUMN A> as checking column
+    # Rows adding with only <COLUMN A> as checking column
     ----------------------------------------------------------------------------------------
     
     Assigned dataframe (max size : 4)           # Queue
@@ -51,7 +51,7 @@ Queue evolution example:
     +-------+-----------+-----------+
     
     
-    # Adding rows with <COLUMN A> and <COLUMN B> as checking columns
+    # Rows adding with <COLUMN A> and <COLUMN B> as checking columns
     ----------------------------------------------------------------------------------------
     
     Assigned dataframe (max size : 4)           # Queue
@@ -68,7 +68,7 @@ Queue evolution example:
     +-------+-----------+-----------+
     
     
-    # Changing rows values with only <COLUMN B> as checking column
+    # Rows adding values with only <COLUMN B> as checking column
     ----------------------------------------------------------------------------------------
     
     Assigned dataframe (max size : 4)           # Queue
@@ -85,7 +85,7 @@ Queue evolution example:
     +-------+-----------+-----------+           +------------------------------------------+
     
     
-    # Adding rows with only <COLUMN A> as checking column
+    # Rows adding with only <COLUMN A> as checking column
     ----------------------------------------------------------------------------------------
     
     Assigned dataframe (max size : 4)           # Queue
@@ -131,9 +131,9 @@ Example !
 ---------
 
 An game room has 6 clients but only 3 arcades and the manager wants to add a challenge for the players. He creates the following rules:
-- A player is replaced by another client every 10 min (i.e., a session)
-- The replaced player is one has not won additional levels between this session and the previous one (if none or several are selected, the first in the list  will be chosen)
-- If a player reaches the 5th level, he will be a replaced player
+- A player is replaced by another client every 10 min (i.e., a session).
+- The replaced player is one has not won additional levels between this session and the previous one (if none or several are selected, the first in the list  will be chosen).
+- If a player reaches the 5th level, he will be a replaced player.
 
 Initialization:
 
@@ -332,3 +332,4 @@ Notes
 - DfQueue doesn't support dataframes with rows multiindexes.
 - The new value of a checking values dictionary in a queue item has to be different from the previous ones. For example, it can be strictly decreasing or increasing if there is only one key in the dictionary (see the REMAINING_LEVELS value for each player in the example above).
 - One managing process with multiple removed rows is faster than multiple managing processes with only one removed row.
+- Pandas 0.23.4 or greater is supported.
