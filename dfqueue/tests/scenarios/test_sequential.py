@@ -157,7 +157,7 @@ def test_sequential_2(queue_name, columns, selected_columns):
     sequential_add_rows(dataframe, ["1"], [columns_dict_row_1])
     assert len(dataframe) == 1
     result_row_1 = ("1", {selected_column: columns_dict_row_1[selected_column]
-                              for selected_column in selected_columns})
+                          for selected_column in selected_columns})
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([result_row_1])
 
     columns_dict_row_2 = {column: str(uuid4()) for column in columns}

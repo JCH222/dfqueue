@@ -24,7 +24,7 @@ def test_list_queue_names():
     assert queue_name_1 in queue_names
 
     queue_name_2 = str(uuid4())
-    assign_dataframe(dataframe_a, 10, 'D', queue_name= queue_name_2)
+    assign_dataframe(dataframe_a, 10, 'D', queue_name=queue_name_2)
     queue_names = list_queue_names()
     assert len(queue_names) == initial_size + 2
     assert all(queue_name in queue_names for queue_name in [queue_name_1, queue_name_2])

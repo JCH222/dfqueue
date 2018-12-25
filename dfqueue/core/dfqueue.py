@@ -9,9 +9,8 @@ from enum import Enum
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
-from pandas import DataFrame
-
 from itertools import compress
+from pandas import DataFrame
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
@@ -272,7 +271,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                 return queue_size if diff > queue_size else diff
 
             items_nb = get_items_nb()
-            while items_nb > 0 and len(queue) > 0:
+            while items_nb > 0 and queue:
                 queue_items = dict([queue.popleft() for _ in range(items_nb)])
                 selected_labels = list(compress(dataframe.index,
                                                 dataframe.index.isin(queue_items.keys())))
@@ -443,12 +442,11 @@ class QueueInfoProvider:
         def __getitem__(self, item):
             if isinstance(item, int):
                 return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE][item]
-            elif isinstance(item, slice):
+            if isinstance(item, slice):
                 queue = self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE]
                 return tuple(islice(queue, item.start, item.stop, item.step))
-            else:
-                raise ValueError("Item type {} not allowed "
-                                 "(only int or slice)".format(type(item).__name__))
+            raise ValueError("Item type {} not allowed "
+                             "(only int or slice)".format(type(item).__name__))
 
         def __len__(self):
             return len(self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE])

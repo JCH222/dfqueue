@@ -4,9 +4,9 @@ from uuid import uuid4
 # noinspection PyPackageRequirements
 from numpy import array
 from pandas import DataFrame
+import pytest
 from dfqueue import assign_dataframe, get_info_provider
 # noinspection PyPackageRequirements
-import pytest
 
 
 def test_queue_info_provider():
