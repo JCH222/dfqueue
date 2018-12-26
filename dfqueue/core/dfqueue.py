@@ -471,6 +471,8 @@ class QueueInfoProvider:
             - brackets with slice type
             - len function
             - iteration
+            - containing
+            - equality
         """
         def __init__(self, queue_name: str):
             self.__queue_handler = QueuesHandler()
@@ -506,6 +508,60 @@ class QueueInfoProvider:
 
         def __eq__(self, other):
             return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__eq__(other)
+
+    class CounterWrapper:
+        """
+            Counter wrapper provides access to a specific counter in read only mode.
+
+            It may be manipulated as a dict:
+            - brackets with key
+            - len function
+            - iteration
+            - containing
+            - equality
+            - keys method
+            - values method
+            - items method
+        """
+        def __init__(self, queue_name: str):
+            self.__queue_handler = QueuesHandler()
+            self.__queue_name = queue_name
+
+        def __getitem__(self, item):
+            return (self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER]
+                    [item].copy())
+
+        def __len__(self):
+            return len(self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER])
+
+        def __iter__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].__iter__()
+
+        def __next__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].__next__()
+
+        def __str__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].__str__()
+
+        def __repr__(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].__repr__()
+
+        def __contains__(self, item):
+            return (self.__queue_handler[self.__queue_name]
+                    [QueueHandlerItem.COUNTER].__contains__(item))
+
+        def __eq__(self, other):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].__eq__(other)
+
+        def keys(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].keys()
+
+        def values(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].values()
+
+        def items(self):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.COUNTER].items()
+
     def __init__(self, queue_name: Union[str, None] = None):
         if __debug__ and queue_name is not None:
             assert queue_name in list_queue_names(), \
@@ -540,6 +596,10 @@ class QueueInfoProvider:
     @property
     def queue(self) -> QueueWrapper:
         return QueueInfoProvider.QueueWrapper(self.__queue_name)
+
+    @property
+    def counter(self) -> CounterWrapper:
+        return QueueInfoProvider.CounterWrapper(self.__queue_name)
 
     def __repr__(self):
         return "{} : {}".format(type(self).__name__, self.__queue_name)

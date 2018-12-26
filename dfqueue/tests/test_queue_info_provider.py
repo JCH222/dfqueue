@@ -7,7 +7,7 @@ from pandas import DataFrame
 # noinspection PyPackageRequirements
 import pytest
 from dfqueue import assign_dataframe, get_info_provider
-from collections import deque
+from collections import deque, Counter
 
 
 def test_queue_info_provider():
@@ -31,6 +31,28 @@ def test_queue_info_provider():
     assert provider.queue != deque((('a1', {'A': 1, 'D': 4}),))
     assert ('a1', {'A': 1, 'D': 4}) in provider.queue
     assert ('a5', {'A': 10, 'D': 40}) not in provider.queue
+    assert provider.counter['a1'] == Counter({frozenset(['A', 'D']): 1})
+    assert provider.counter['a1'] != Counter({frozenset(['A', 'D']): 10})
+    assert provider.counter == {'a1': Counter({frozenset(['A', 'D']): 1}),
+                                'a2': Counter({frozenset(['A', 'D']): 1}),
+                                'a3': Counter({frozenset(['A', 'D']): 1})}
+    assert provider.counter != {'a1': Counter({frozenset(['A', 'D']): 10}),
+                                'a2': Counter({frozenset(['A', 'D']): 10}),
+                                'a3': Counter({frozenset(['A', 'D']): 10})}
+    assert set(provider.counter.keys()) == set(['a1', 'a2', 'a3'])
+    assert set(provider.counter.keys()) != set(['a4'])
+    assert list(provider.counter.values()) == [Counter({frozenset(['A', 'D']): 1}),
+                                               Counter({frozenset(['A', 'D']): 1}),
+                                               Counter({frozenset(['A', 'D']): 1})]
+    assert list(provider.counter.values()) != [Counter({frozenset(['A', 'D']): 10}),
+                                               Counter({frozenset(['A', 'D']): 10}),
+                                               Counter({frozenset(['A', 'D']): 10})]
+    assert list(provider.counter.items()) == [('a1', Counter({frozenset(['A', 'D']): 1})),
+                                              ('a2', Counter({frozenset(['A', 'D']): 1})),
+                                              ('a3', Counter({frozenset(['A', 'D']): 1}))]
+    assert list(provider.counter.items()) != [('a4', Counter({frozenset(['A', 'D']): 10})),
+                                              ('a5', Counter({frozenset(['A', 'D']): 10})),
+                                              ('a6', Counter({frozenset(['A', 'D']): 10}))]
 
     dataframe_2 = DataFrame(array([[10, 20, 30, 40], [50, 60, 70, 80], [90, 100, 110, 120]]),
                             index=['a1', 'a2', 'a3'], columns=['A', 'B', 'C', 'D'])
