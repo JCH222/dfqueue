@@ -11,6 +11,7 @@ from functools import wraps
 from threading import Lock
 from itertools import compress
 from pandas import DataFrame
+from collections import Counter
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
@@ -22,13 +23,15 @@ class QueueHandlerItem(Enum):
         Items contained in the QueuesHandler's instance.
 
         QUEUE : queue
+        COUNTER : number of occurences of queue items with the same row label and selected columns
         DATAFRAME : dataframe assigned to the queue
         MAX_SIZE : assigned dataframe's max size
     """
 
     QUEUE = 0
-    DATAFRAME = 1
-    MAX_SIZE = 2
+    COUNTER = 1
+    DATAFRAME = 2
+    MAX_SIZE = 3
 
 
 class QueuesHandler:
@@ -52,6 +55,7 @@ class QueuesHandler:
             self.__default_queue_name = str(uuid4())
             # Define the default queue
             self.__queues = {self.__default_queue_name: deque()}
+            self.__counters = {self.__default_queue_name: dict()}
             self.__assigned_dataframes = {self.__default_queue_name: None}
             self.__assigned_dataframe_max_sizes = {self.__default_queue_name: 1000000}
             self.__assigned_locks = {self.__default_queue_name: Lock()}
@@ -88,6 +92,8 @@ class QueuesHandler:
         def __getitem__(self, queue_name: str) -> Dict[QueueHandlerItem, Any]:
             assert queue_name in self.__queues, \
                 "The queue '{}' doesn't exist".format(queue_name)
+            assert queue_name in self.__counters, \
+                "The counter for the queue '{}' doesn't exist".format(queue_name)
             assert queue_name in self.__assigned_dataframes, \
                 "The assigned dataframe for the queue '{}' doesn't exist".format(queue_name)
             assert queue_name in self.__assigned_dataframe_max_sizes, \
@@ -95,6 +101,7 @@ class QueuesHandler:
                 "the queue '{}' doesn't exist".format(queue_name)
 
             return {QueueHandlerItem.QUEUE: self.__queues[queue_name],
+                    QueueHandlerItem.COUNTER: self.__counters[queue_name],
                     QueueHandlerItem.DATAFRAME: self.__assigned_dataframes[queue_name],
                     QueueHandlerItem.MAX_SIZE: self.__assigned_dataframe_max_sizes[queue_name]}
 
@@ -104,6 +111,10 @@ class QueuesHandler:
             assert all([item in items for item in QueueHandlerItem]), \
                 "Items in the dictionary are not queue handler item"
             self.__queues[queue_name] = deque(items[QueueHandlerItem.QUEUE])
+            assert isinstance(items[QueueHandlerItem.COUNTER],
+                              dict) and all([isinstance(counter, Counter) for counter
+                                             in items[QueueHandlerItem.COUNTER].values()])
+            self.__counters[queue_name] = items[QueueHandlerItem.COUNTER]
             assert isinstance(items[QueueHandlerItem.DATAFRAME], DataFrame) or \
                    items[QueueHandlerItem.DATAFRAME] is None, \
                 "Dataframe is not a Dataframe object or None"
@@ -220,6 +231,11 @@ def adding(queue_items_creation_function: Callable[..., List[Tuple[Any, Dict]]] 
 
             for item in new_result:
                 queue_data[QueueHandlerItem.QUEUE].append(item)
+                counter = queue_data[QueueHandlerItem.COUNTER]
+                if item[0] not in counter:
+                    counter[item[0]] = Counter()
+                counter[item[0]][frozenset(item[1].keys())] += 1
+
                 if __debug__:
                     logging.debug(
                         __create_logging_message("New item added in the queue '{}' : {}\n"
@@ -262,6 +278,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                 "The dataframe of the queue '{}' is not assigned".format(real_queue_name)
             result = decorated_function(*args, **kwargs)
             queue = queue_data[QueueHandlerItem.QUEUE]
+            counter = queue_data[QueueHandlerItem.COUNTER]
             dataframe = queue_data[QueueHandlerItem.DATAFRAME]
             max_size = queue_data[QueueHandlerItem.MAX_SIZE]
 
@@ -270,9 +287,17 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                 diff = dataframe.index.size - max_size
                 return queue_size if diff > queue_size else diff
 
+            def pop_left_queue(pop_nb: int) -> List[dict]:
+                items = list()
+                for _ in range(pop_nb):
+                    item = queue.popleft()
+                    counter[item[0]][frozenset(item[1].keys())] -= 1
+                    items.append(item)
+                return dict(items)
+
             items_nb = get_items_nb()
             while items_nb > 0 and queue:
-                queue_items = dict([queue.popleft() for _ in range(items_nb)])
+                queue_items = pop_left_queue(items_nb)
                 selected_labels = list(compress(dataframe.index,
                                                 dataframe.index.isin(queue_items.keys())))
 
@@ -376,23 +401,35 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
             assert selected_column in columns, \
                 "Selected columns {} doesn't exist in the dataframe".format(selected_column)
 
+    def get_values(r, cs, counter):
+        values = dict()
+        for c in cs:
+            values[c] = r[c]
+        if r.name not in counter:
+            counter[r.name] = Counter()
+        counter[r.name][frozenset(cs)] += 1
+        return values
+
     handler = QueuesHandler()
     real_queue_name = handler.default_queue_name if queue_name is None else queue_name
     # Reset the dedicated queue
     if dataframe is not None:
         if not dataframe.empty:
+            reseted_counter = {}
             reseted_queue = dataframe.apply(lambda row:
                                             (row.name,
-                                             {column: row[column]
-                                              for column in selected_columns}),
+                                             get_values(row, selected_columns, reseted_counter)),
                                             axis=1,
                                             result_type='reduce')
         else:
+            reseted_counter = {}
             reseted_queue = []
     else:
+        reseted_counter = {}
         reseted_queue = []
 
     handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue,
+                                QueueHandlerItem.COUNTER: reseted_counter,
                                 QueueHandlerItem.DATAFRAME: dataframe,
                                 QueueHandlerItem.MAX_SIZE: max_size}
     # noinspection PyProtectedMember

@@ -6,6 +6,7 @@ import pytest
 from pandas import DataFrame
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler, QueueHandlerItem
+from collections import Counter
 
 
 def test_singleton():
@@ -39,23 +40,25 @@ def test_invalid_get_item():
         handler[invalid_queue_name]
 
 
-@pytest.mark.parametrize("queue_iterable,dataframe,max_size", [
-    (deque(), DataFrame(), 1),
-    (deque((1, {"A": "a", "B": "b"})), DataFrame(), 1),
-    (deque(), DataFrame(), 1234567890),
-    ([], DataFrame(), 1),
-    ([(1, {"A": "a", "B": "b"})], DataFrame(), 1),
-    ([], DataFrame(), 1234567890)
+@pytest.mark.parametrize("queue_iterable,dataframe,max_size,counter", [
+    (deque(), DataFrame(), 1, Counter()),
+    (deque((1, {"A": "a", "B": "b"})), DataFrame(), 1, {1: Counter({"A": 1, "B": 1})}),
+    (deque(), DataFrame(), 1234567890, {}),
+    ([], DataFrame(), 1, {}),
+    ([(1, {"A": "a", "B": "b"})], DataFrame(), 1, {1: Counter({"A": 1, "B": 1})}),
+    ([], DataFrame(), 1234567890, Counter())
 ])
-def test_valid_set_item(queue_iterable, dataframe, max_size):
+def test_valid_set_item(queue_iterable, dataframe, max_size, counter):
     handler = QueuesHandler()
     default_queue_name = handler.default_queue_name
     handler[default_queue_name] = {QueueHandlerItem.QUEUE: queue_iterable,
+                                   QueueHandlerItem.COUNTER: counter,
                                    QueueHandlerItem.DATAFRAME: dataframe,
                                    QueueHandlerItem.MAX_SIZE: max_size}
     queue_data = handler[default_queue_name]
 
     assert queue_data[QueueHandlerItem.QUEUE] == deque(queue_iterable)
+    assert queue_data[QueueHandlerItem.COUNTER] == counter
     assert id(queue_data[QueueHandlerItem.DATAFRAME]) == id(dataframe)
     assert queue_data[QueueHandlerItem.MAX_SIZE] == max_size
 
@@ -78,15 +81,29 @@ def test_invalid_set_item():
 
     with pytest.raises(AssertionError):
         handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(),
+                                       QueueHandlerItem.COUNTER: dict()}
+
+    with pytest.raises(AssertionError):
+        handler[default_queue_name] = {QueueHandlerItem.MAX_SIZE: 1,
+                                       QueueHandlerItem.COUNTER: dict()}
+
+    with pytest.raises(AssertionError):
+        handler[default_queue_name] = {QueueHandlerItem.DATAFRAME: DataFrame(),
+                                       QueueHandlerItem.COUNTER: dict()}
+
+    with pytest.raises(AssertionError):
+        handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(),
                                        QueueHandlerItem.DATAFRAME: DataFrame(),
                                        QueueHandlerItem.MAX_SIZE: None}
 
     with pytest.raises(TypeError):
         handler[default_queue_name] = {QueueHandlerItem.QUEUE: None,
+                                       QueueHandlerItem.COUNTER: dict(),
                                        QueueHandlerItem.DATAFRAME: DataFrame(),
                                        QueueHandlerItem.MAX_SIZE: 1}
 
     with pytest.raises(AssertionError):
         handler[default_queue_name] = {QueueHandlerItem.QUEUE: deque(),
+                                       QueueHandlerItem.COUNTER: dict(),
                                        QueueHandlerItem.DATAFRAME: "UNKNOWN",
                                        QueueHandlerItem.MAX_SIZE: 1}
