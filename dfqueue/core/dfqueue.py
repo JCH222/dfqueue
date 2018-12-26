@@ -500,6 +500,12 @@ class QueueInfoProvider:
         def __repr__(self):
             return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__repr__()
 
+        def __contains__(self, item):
+            return (self.__queue_handler[self.__queue_name]
+                    [QueueHandlerItem.QUEUE].__contains__(item))
+
+        def __eq__(self, other):
+            return self.__queue_handler[self.__queue_name][QueueHandlerItem.QUEUE].__eq__(other)
     def __init__(self, queue_name: Union[str, None] = None):
         if __debug__ and queue_name is not None:
             assert queue_name in list_queue_names(), \
