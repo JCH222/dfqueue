@@ -15,7 +15,7 @@ from collections import Counter
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
-           'get_info_provider']
+           'get_info_provider', 'QueueBehaviour']
 
 
 class QueueHandlerItem(Enum):
@@ -26,12 +26,28 @@ class QueueHandlerItem(Enum):
         COUNTER : number of occurences of queue items with the same row label and selected columns
         DATAFRAME : dataframe assigned to the queue
         MAX_SIZE : assigned dataframe's max size
+        BEHAVIOUR : queue managing behaviour
     """
 
     QUEUE = 0
     COUNTER = 1
     DATAFRAME = 2
     MAX_SIZE = 3
+    BEHAVIOUR = 4
+
+
+class QueueBehaviour(Enum):
+    """
+        Behaviour of the queue during the managing process.
+
+        LAST_ITEM : only the last item in the queue for each group of items
+        (same row label and same selected columns) is used during the managing process
+        ALL_ITEMS : all items in the queue for each group of items
+        (same row label and same selected columns) is used during the managing process
+    """
+
+    LAST_ITEM = 0
+    ALL_ITEMS = 1
 
 
 class QueuesHandler:
@@ -59,6 +75,7 @@ class QueuesHandler:
             self.__assigned_dataframes = {self.__default_queue_name: None}
             self.__assigned_dataframe_max_sizes = {self.__default_queue_name: 1000000}
             self.__assigned_locks = {self.__default_queue_name: Lock()}
+            self.__queue_behaviour = {self.__default_queue_name: QueueBehaviour.LAST_ITEM}
 
         @property
         def default_queue_name(self) -> str:
@@ -99,11 +116,14 @@ class QueuesHandler:
             assert queue_name in self.__assigned_dataframe_max_sizes, \
                 "The assigned dataframe's max size for " \
                 "the queue '{}' doesn't exist".format(queue_name)
+            assert queue_name in self.__queue_behaviour,\
+                "The behaviour for the queue '{}' doesn't exist".format(queue_name)
 
             return {QueueHandlerItem.QUEUE: self.__queues[queue_name],
                     QueueHandlerItem.COUNTER: self.__counters[queue_name],
                     QueueHandlerItem.DATAFRAME: self.__assigned_dataframes[queue_name],
-                    QueueHandlerItem.MAX_SIZE: self.__assigned_dataframe_max_sizes[queue_name]}
+                    QueueHandlerItem.MAX_SIZE: self.__assigned_dataframe_max_sizes[queue_name],
+                    QueueHandlerItem.BEHAVIOUR: self.__queue_behaviour[queue_name]}
 
         def __setitem__(self, queue_name: str, items: dict) -> NoReturn:
             assert len(items) == len(QueueHandlerItem), \
@@ -121,6 +141,9 @@ class QueuesHandler:
             self.__assigned_dataframes[queue_name] = items[QueueHandlerItem.DATAFRAME]
             assert isinstance(items[QueueHandlerItem.MAX_SIZE], int), "Max size is not an integer"
             self.__assigned_dataframe_max_sizes[queue_name] = items[QueueHandlerItem.MAX_SIZE]
+            assert isinstance(items[QueueHandlerItem.BEHAVIOUR], QueueBehaviour), \
+                "Behaviour is not a QueueBehaviour object"
+            self.__queue_behaviour[queue_name] = items[QueueHandlerItem.BEHAVIOUR]
 
     __instance = None
 
@@ -373,7 +396,8 @@ def synchronized(queue_name: Union[str, None] = None) -> Callable:
 def assign_dataframe(dataframe: Union[DataFrame, None],
                      max_size: int,
                      selected_columns: Iterable[Any],
-                     queue_name: Union[str, None] = None) -> NoReturn:
+                     queue_name: Union[str, None] = None,
+                     queue_behaviour: QueueBehaviour = QueueBehaviour.LAST_ITEM) -> NoReturn:
     """
         Assign a dataframe to a QueueHandler's queue and reset the queue.
 
@@ -393,6 +417,9 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
 
         :param queue_name: Name of the selected queue
         :type queue_name: Union[str, None]
+
+        :param queue_behaviour: behaviour of the queue during the managing process
+        :type queue_behaviour: QueueBehaviour
     """
 
     if __debug__ and dataframe is not None:
@@ -431,7 +458,8 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
     handler[real_queue_name] = {QueueHandlerItem.QUEUE: reseted_queue,
                                 QueueHandlerItem.COUNTER: reseted_counter,
                                 QueueHandlerItem.DATAFRAME: dataframe,
-                                QueueHandlerItem.MAX_SIZE: max_size}
+                                QueueHandlerItem.MAX_SIZE: max_size,
+                                QueueHandlerItem.BEHAVIOUR: queue_behaviour}
     # noinspection PyProtectedMember
     QueuesHandler._QueuesHandler__instance.assign_lock(queue_name, dataframe)
     if __debug__:
