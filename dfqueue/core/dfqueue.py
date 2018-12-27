@@ -304,6 +304,7 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
             counter = queue_data[QueueHandlerItem.COUNTER]
             dataframe = queue_data[QueueHandlerItem.DATAFRAME]
             max_size = queue_data[QueueHandlerItem.MAX_SIZE]
+            behaviour = queue_data[QueueHandlerItem.BEHAVIOUR]
 
             def get_items_nb() -> int:
                 queue_size = len(queue)
@@ -314,8 +315,18 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                 items = list()
                 for _ in range(pop_nb):
                     item = queue.popleft()
-                    counter[item[0]][frozenset(item[1].keys())] -= 1
-                    items.append(item)
+                    key = frozenset(item[1].keys())
+                    if behaviour == QueueBehaviour.LAST_ITEM:
+                        if counter[item[0]][key] == 1:
+                            items.append(item)
+                        elif counter[item[0]][key] <= 0:
+                            pass
+                    elif behaviour == QueueBehaviour.ALL_ITEMS:
+                        items.append(item)
+                    else:
+                        pass
+
+                    counter[item[0]][key] -= 1
                 return dict(items)
 
             items_nb = get_items_nb()
