@@ -11,6 +11,11 @@ DfQueue can be split into three distinct parts:
 - The adding of items (related to a dataframe row) in the queues  (*adding* decorator)
 - The managing of the dataframes according to items in the related queues (*managing* decorator)
 
+Installation
+------------
+
+    pip install dfqueue
+
 How does it work?
 -----------------
 
