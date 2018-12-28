@@ -11,6 +11,11 @@ DfQueue can be split into three distinct parts:
 - The adding of items (related to a dataframe row) in the queues  (*adding* decorator)
 - The managing of the dataframes according to items in the related queues (*managing* decorator)
 
+[![pypi][pypi-image]][pypi-url]
+
+[pypi-image]: https://img.shields.io/pypi/v/dfqueue.svg?style=flat
+[pypi-url]: https://pypi.org/project/dfqueue
+
 Installation
 ------------
 
