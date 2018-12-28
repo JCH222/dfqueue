@@ -8,4 +8,6 @@ from .core.dfqueue import assign_dataframe
 from .core.dfqueue import list_queue_names
 from .core.dfqueue import get_info_provider
 
+from .core.dfqueue import QueueBehaviour
+
 from .__meta__ import __version__

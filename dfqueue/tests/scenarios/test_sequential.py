@@ -12,7 +12,7 @@ from pandas import DataFrame, Series, MultiIndex
 import pytest
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler
-from dfqueue import adding, managing, assign_dataframe
+from dfqueue import adding, managing, assign_dataframe, QueueBehaviour
 from . import add_row, change_row_value, create_queue_item, remove_row, create_queue_items
 
 logging.getLogger().setLevel("DEBUG")
@@ -26,7 +26,8 @@ logging.getLogger().setLevel("DEBUG")
 @pytest.mark.parametrize("columns, selected_columns", [
     (['A', 'B', 'C', 'D'], ['B', 'D']),
     (MultiIndex.from_tuples(list(zip(*[['A', 'A', 'B', 'B'], ['1', '2', '1', '2']])),
-                            names=['first', 'second']), [('A', '1'), ('B', '2')])
+                            names=['first', 'second']), [('A', '1'), ('B', '2')]),
+    (['A', 'B', 'C', 'D'], ['B'])
 ])
 def test_sequential_1(queue_name, columns, selected_columns):
     queue_name = queue_name if queue_name is not None else QueuesHandler().default_queue_name
@@ -125,6 +126,84 @@ def test_sequential_1(queue_name, columns, selected_columns):
                           for selected_column in selected_columns})
     assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque([new_result_row_5,
                                                                         result_row_7])
+
+    ################################################################################################
+
+    for behaviour in [QueueBehaviour.ALL_ITEMS, QueueBehaviour.LAST_ITEM]:
+        values_row_1 = [str(uuid4()) for _ in range(len(columns))]
+        values_row_2 = [str(uuid4()) for _ in range(len(columns))]
+        dataframe_2 = DataFrame(data=[values_row_1, values_row_2], index=['1', '2'],
+                                columns=columns)
+        assign_dataframe(dataframe_2, 2, selected_columns, queue_name,
+                         queue_behaviour=behaviour)
+        assert len(dataframe_2) == 2
+        assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque(
+            [
+                ('1', {column: values_row_1[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('2', {column: values_row_2[list(columns).index(column)] for column in
+                       selected_columns})
+            ])
+
+        new_values_row_1 = [str(uuid4()) for _ in range(len(columns))]
+        sequential_change_row_value(dataframe_2, '1', {column: new_values_row_1[i] for i, column in
+                                                       enumerate(list(columns))})
+        assert len(dataframe_2) == 2
+        assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque(
+            [
+                ('1', {column: values_row_1[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('2', {column: values_row_2[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('1', {column: new_values_row_1[list(columns).index(column)] for column in
+                       selected_columns})
+            ])
+
+        sequential_change_row_value(dataframe_2, '1', {column: values_row_1[i] for i, column in
+                                                       enumerate(list(columns))})
+        assert len(dataframe_2) == 2
+        assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque(
+            [
+                ('1', {column: values_row_1[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('2', {column: values_row_2[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('1', {column: new_values_row_1[list(columns).index(column)] for column in
+                       selected_columns}),
+                ('1', {column: values_row_1[list(columns).index(column)] for column in
+                       selected_columns})
+            ])
+
+        values_row_3 = [str(uuid4()) for _ in range(len(columns))]
+        sequential_add_row(dataframe_2, '3', {column: values_row_3[i] for i, column
+                                              in enumerate(columns)})
+        assert len(dataframe_2) == 2
+        if behaviour == QueueBehaviour.ALL_ITEMS:
+            assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque(
+                [
+                    ('2', {column: values_row_2[list(columns).index(column)] for column in
+                           selected_columns}),
+                    ('1', {column: new_values_row_1[list(columns).index(column)] for column in
+                           selected_columns}),
+                    ('1', {column: values_row_1[list(columns).index(column)] for column in
+                           selected_columns}),
+                    ('3', {column: values_row_3[list(columns).index(column)] for column in
+                           selected_columns})
+                ])
+            assert all(label in dataframe_2.index for label in ['2', '3'])
+        elif behaviour == QueueBehaviour.LAST_ITEM:
+            assert QueuesHandler()._QueuesHandler__queues[queue_name] == deque(
+                [
+                    ('1', {column: new_values_row_1[list(columns).index(column)] for column in
+                           selected_columns}),
+                    ('1', {column: values_row_1[list(columns).index(column)] for column in
+                           selected_columns}),
+                    ('3', {column: values_row_3[list(columns).index(column)] for column in
+                           selected_columns})
+                ])
+            assert all(label in dataframe_2.index for label in ['1', '3'])
+        else:
+            assert False, "Missing test for the behaviour {}".format(behaviour)
 
 
 @pytest.mark.parametrize("queue_name", [
