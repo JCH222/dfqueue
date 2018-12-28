@@ -17,9 +17,10 @@ How does it work?
 DfQueue instantiates a *QueuesHandler* singleton containing all dataframe queues and their parameters. It can't be directly accessed
 but the *assign_dataframe* function can reset a specific queue and modify its parameters.
 
-A queues has two parameters:
+A queues has three parameters:
 - The dataframe assigned to the queue
 - The maximum allowed size of the assigned dataframe. If the size of the assigned dataframe is greater than this parameter, the managing functions will remove the excess rows during their next calls
+- The behaviour of the queue during the managing process
 
 Items in the queues are size 2 tuples *(A, B)* containing:
 - *A* : The label of the related row. Each queue item represents a row in the assigned dataframe. If the label doesn't exist, the item will be removed and ignored during the next managing function call
@@ -68,7 +69,7 @@ Queue evolution example:
     +-------+-----------+-----------+
     
     
-    # Rows adding values with only <COLUMN B> as checking column
+    # Rows adding values with only <COLUMN A> as checking column
     ----------------------------------------------------------------------------------------
     
     Assigned dataframe (max size : 4)           # Queue
@@ -81,7 +82,7 @@ Queue evolution example:
     +-------+-----------+-----------+           +------------------------------------------+
     | ROW 3 |     4     |     5     |           | ( ROW 4, { COLUMN A : 6, COLUMN B : 7 }) |
     +-------+-----------+-----------+           +------------------------------------------+
-    | ROW 4 |     6     |     7     |           | ( ROW 2, { COLUMN B : 300 })             |       
+    | ROW 4 |     6     |     7     |           | ( ROW 2, { COLUMN A : 200 })             |       
     +-------+-----------+-----------+           +------------------------------------------+
     
     
@@ -98,7 +99,7 @@ Queue evolution example:
     +-------+-----------+-----------+           +------------------------------------------+
     | ROW 3 |     4     |     5     |           | ( ROW 4, { COLUMN A : 6, COLUMN B : 7 }) |
     +-------+-----------+-----------+           +------------------------------------------+
-    | ROW 4 |     6     |     7     |           | ( ROW 2, { COLUMN B : 300 })             |       
+    | ROW 4 |     6     |     7     |           | ( ROW 2, { COLUMN A : 200 })             |       
     +-------+-----------+-----------+           +------------------------------------------+
     | ROW 5 |     8     |     9     |           | ( ROW 5, { COLUMN A : 8 })               |
     +-------+-----------+-----------+           +------------------------------------------+
@@ -115,7 +116,7 @@ Queue evolution example:
     +-------+-----------+-----------+           +------------------------------------------+
     |       | COLUMN A  | COLUMN B  |           | ( ROW 4, { COLUMN A : 6, COLUMN B : 7 }) |
     +=======+===========+===========+           +------------------------------------------+
-    | ROW 2 |    200    |    300    |           | ( ROW 2, { COLUMN B : 300 })             |
+    | ROW 2 |    200    |    300    |           | ( ROW 2, { COLUMN A : 200 })             |
     +-------+-----------+-----------+           +------------------------------------------+
     | ROW 4 |     6     |     7     |           | ( ROW 5, { COLUMN A : 8 })               |       
     +-------+-----------+-----------+           +------------------------------------------+
@@ -124,7 +125,8 @@ Queue evolution example:
     | ROW 6 |     2     |     3     |
     +-------+-----------+-----------+
     
-    <( ROW 2, { COLUMN A : 2 })> was ignored because the <COLUMN A> value doesn't correpond.
+    If the selected behaviour is ALL_ITEMS : <( ROW 2, { COLUMN A : 2 })> was ignored because the <COLUMN A> value doesn't correpond.
+    If the selected behaviour is LAST_ITEM : <( ROW 2, { COLUMN A : 2 })> was ignored because this is not the last item of < ROW 2 > with only < COLUMN A > as checking column.
     
 
 Example !
@@ -140,7 +142,7 @@ Initialization:
 ```python
 from pandas import DataFrame, Series
 from random import randint
-from dfqueue import assign_dataframe, managing, adding
+from dfqueue import assign_dataframe, managing, adding, QueueBehaviour
 
 arcades_nb = 3
 max_level = 5
@@ -160,7 +162,7 @@ clients = [
 Dataframe assignation:
 
 ```python
-assign_dataframe(arcade_room, arcades_nb, checking_columns)
+assign_dataframe(arcade_room, arcades_nb, checking_columns, queue_behaviour=QueueBehaviour.ALL_ITEMS)
 ```
     
 Adding and managing function creation:
@@ -330,6 +332,5 @@ Notes
 -----
 
 - DfQueue doesn't support dataframes with rows multiindexes.
-- The new value of a checking values dictionary in a queue item has to be different from the previous ones. For example, it can be strictly decreasing or increasing if there is only one key in the dictionary (see the REMAINING_LEVELS value for each player in the example above).
 - One managing process with multiple removed rows is faster than multiple managing processes with only one removed row.
 - Pandas 0.23.4 or greater is supported.
