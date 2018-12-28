@@ -319,12 +319,15 @@ def managing(queue_name: Union[str, None] = None) -> Callable:
                     if behaviour == QueueBehaviour.LAST_ITEM:
                         if counter[item[0]][key] == 1:
                             items.append(item)
-                        elif counter[item[0]][key] <= 0:
-                            pass
+                        elif __debug__ and counter[item[0]][key] <= 0:
+                            logging.warning(
+                                __create_logging_message("'{}' is an item in the queue but the "
+                                                         "value of the related counter is "
+                                                         "{}").format(item, counter[item[0]][key]))
                     elif behaviour == QueueBehaviour.ALL_ITEMS:
                         items.append(item)
                     else:
-                        pass
+                        raise ValueError("Behaviour '{}' not supported".format(behaviour))
 
                     counter[item[0]][key] -= 1
                 return dict(items)
