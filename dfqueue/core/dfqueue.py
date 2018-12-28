@@ -3,15 +3,13 @@
 import logging
 
 from uuid import uuid4
-from collections import deque
-from itertools import islice
+from collections import deque, Counter
+from itertools import islice, compress
 from enum import Enum
 from typing import Union, Callable, Tuple, Any, NoReturn, Dict, Iterable, List
 from functools import wraps
 from threading import Lock
-from itertools import compress
 from pandas import DataFrame
-from collections import Counter
 
 
 __all__ = ['adding', 'managing', 'synchronized', 'assign_dataframe', 'list_queue_names',
@@ -442,13 +440,13 @@ def assign_dataframe(dataframe: Union[DataFrame, None],
             assert selected_column in columns, \
                 "Selected columns {} doesn't exist in the dataframe".format(selected_column)
 
-    def get_values(r, cs, counter):
+    def get_values(local_row, local_columns, counter):
         values = dict()
-        for c in cs:
-            values[c] = r[c]
-        if r.name not in counter:
-            counter[r.name] = Counter()
-        counter[r.name][frozenset(cs)] += 1
+        for local_column in local_columns:
+            values[local_column] = local_row[local_column]
+        if local_row.name not in counter:
+            counter[local_row.name] = Counter()
+        counter[local_row.name][frozenset(local_columns)] += 1
         return values
 
     handler = QueuesHandler()

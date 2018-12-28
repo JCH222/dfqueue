@@ -1,13 +1,13 @@
 # coding: utf8
 
 from uuid import uuid4
+from collections import Counter, deque
 # noinspection PyPackageRequirements
 from numpy import array
 from pandas import DataFrame
 # noinspection PyPackageRequirements
 import pytest
 from dfqueue import assign_dataframe, get_info_provider
-from collections import deque, Counter
 
 
 def test_queue_info_provider():

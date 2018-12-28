@@ -1,6 +1,7 @@
 # coding: utf8
 
 from collections import deque
+from datetime import datetime
 # noinspection PyPackageRequirements
 import pytest
 # noinspection PyPackageRequirements
@@ -9,7 +10,6 @@ from pandas import DataFrame
 from dfqueue import assign_dataframe
 # noinspection PyProtectedMember
 from dfqueue.core.dfqueue import QueuesHandler, QueueHandlerItem
-from datetime import datetime
 
 
 @pytest.mark.parametrize("queue_name", [
